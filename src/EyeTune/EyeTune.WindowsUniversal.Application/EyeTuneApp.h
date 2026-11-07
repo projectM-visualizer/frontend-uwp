@@ -29,6 +29,7 @@
 // ANGLE include for Windows Store
 #include <angle_windowsstore.h>
 #include "WASAPICapture.h"
+#include <projectM-4/playlist.h>
 
 namespace EyeTune
 {
@@ -48,11 +49,11 @@ namespace EyeTune
     private:
 		void loopback();
 		void stoploopback();
-		void addFakePCM();
 		void RecreateRenderer(std::string presetdir);
 		void RecreateRenderer();
-		projectMKeycode winKeycode(Windows::UI::Core::KeyEventArgs^ args);
-		projectM* app;
+		void DestroyRenderer();
+		projectm_handle app;
+		projectm_playlist_handle playlist;
 
         // Application lifecycle event handlers.
         void OnActivated(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView, Windows::ApplicationModel::Activation::IActivatedEventArgs^ args);

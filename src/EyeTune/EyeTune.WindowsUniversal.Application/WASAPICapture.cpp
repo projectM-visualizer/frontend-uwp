@@ -120,7 +120,7 @@ WASAPICapture::~WASAPICapture()
 //  Activates the default audio capture on a asynchronous callback thread.  This needs
 //  to be called from the main UI thread.
 //
-HRESULT WASAPICapture::InitializeAudioDeviceAsync(projectM* app)
+HRESULT WASAPICapture::InitializeAudioDeviceAsync(projectm_handle app)
 {
 	m_app = app;
     ComPtr<IActivateAudioInterfaceAsyncOperation> asyncOp;
@@ -784,7 +784,7 @@ HRESULT WASAPICapture::ProcessScopeData( BYTE* pData, DWORD cbBytes )
 
 
 	// if (dwNumPoints > 256) dwNumPoints = 256;
-	m_app->pcm()->addPCM16Data(pi16, dwNumPoints);
+	projectm_pcm_add_int16(m_app, pi16, dwNumPoints, m_MixFormat->nChannels == 1 ? PROJECTM_MONO : PROJECTM_STEREO);
 
 	return hr;
 

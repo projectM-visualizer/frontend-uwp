@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Compiler settings for building libprojectM from the src/projectm submodule.
+       They mirror what projectM's CMake build sets for a shared OpenGL ES library. -->
+  <PropertyGroup>
+    <ProjectMRoot>$(MSBuildThisFileDirectory)..\..\projectm\</ProjectMRoot>
+    <ProjectMGenerated>$(MSBuildThisFileDirectory)..\projectM.Generated\</ProjectMGenerated>
+    <ProjectMLibraryIncludes>$(ProjectMGenerated)include;$(ProjectMGenerated);$(ProjectMRoot)src;$(ProjectMRoot)src\api\include;$(ProjectMRoot)src\playlist;$(ProjectMRoot)src\playlist\api;$(ProjectMRoot)src\libprojectM;$(ProjectMRoot)src\libprojectM\Audio;$(ProjectMRoot)src\libprojectM\MilkdropPreset;$(ProjectMRoot)src\libprojectM\Renderer;$(ProjectMRoot)src\libprojectM\UserSprites;$(ProjectMRoot)vendor;$(ProjectMRoot)vendor\glad\include;$(ProjectMRoot)vendor\hlslparser\src;$(ProjectMRoot)vendor\stb_image;$(ProjectMRoot)vendor\projectm-eval;$(ProjectMRoot)vendor\projectm-eval\projectm-eval\api</ProjectMLibraryIncludes>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectMLibraryIncludes);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>projectM_api_EXPORTS;projectM_playlist_EXPORTS;PROJECTM_CXX_STATIC_DEFINE;DATADIR_PATH="";PRJM_F_SIZE=8;NOMINMAX;WIN32_LEAN_AND_MEAN;STBI_NO_DDS;WIN32;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">DEBUG;ENABLE_DEBUG_LOGGING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ForcedIncludeFiles>config.h;$(MSBuildThisFileDirectory)uwp_compat.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <SDLCheck>false</SDLCheck>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+</Project>

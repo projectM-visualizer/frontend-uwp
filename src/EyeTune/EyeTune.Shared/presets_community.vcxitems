@@ -14,7 +14,7 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)..\..\projectm\presets\presets_community\*.*" Link="e\%(Filename)%(Extension)">
+    <None Include="$(MSBuildThisFileDirectory)..\presets\presets_community\*.*" Link="e\%(Filename)%(Extension)">
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>

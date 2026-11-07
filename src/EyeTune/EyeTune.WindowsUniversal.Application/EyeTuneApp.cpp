@@ -12,9 +12,8 @@
 
 #include "EyeTuneApp.h"
 #include "EyeTunePlatformString.h"
-#include "projectM.hpp"
-#include "Renderer.hpp"
 #include "EyeTunePopUp.h"
+#include <cstdlib>
 #include <locale> 
 #include <codecvt>
 
@@ -61,6 +60,8 @@ int main(Platform::Array<Platform::String^>^)
 App::App() :
     mWindowClosed(false),
     mWindowVisible(true),
+	app(nullptr),
+	playlist(nullptr),
 	experimental_presets(false),
     mEglDisplay(EGL_NO_DISPLAY),
     mEglContext(EGL_NO_CONTEXT),
@@ -134,29 +135,6 @@ void App::stoploopback() {
 	this->StopCapture(nullptr, nullptr);
 }
 
-void App::addFakePCM() {
-  int i;
-  short pcm_data[2][512];
-  /** Produce some fake PCM data to stuff into projectM */
-  for (i = 0; i < 512; i++) {
-    if (i % 2 == 0) {
-      pcm_data[0][i] = (float)(rand() / ((float)RAND_MAX) * (pow(2, 14)));
-      pcm_data[1][i] = (float)(rand() / ((float)RAND_MAX) * (pow(2, 14)));
-    }
-    else {
-      pcm_data[0][i] = (float)(rand() / ((float)RAND_MAX) * (pow(2, 14)));
-      pcm_data[1][i] = (float)(rand() / ((float)RAND_MAX) * (pow(2, 14)));
-    }
-    if (i % 2 == 1) {
-      pcm_data[0][i] = -pcm_data[0][i];
-      pcm_data[1][i] = -pcm_data[1][i];
-    }
-  }
-
-  /** Add the waveform data */
-  app->pcm()->addPCM16(pcm_data);
-}
-
 void App::RecreateRenderer()
 {
 	std::string presetdir = "";
@@ -171,171 +149,71 @@ void App::RecreateRenderer()
 	App::RecreateRenderer(presetdir);
 }
 
-projectMKeycode EyeTune::App::winKeycode(Windows::UI::Core::KeyEventArgs^ args)
+// Resolves GL entry points through ANGLE for projectM.
+static void* LoadGlProc(const char* name, void* /*userData*/)
 {
-	switch (args->VirtualKey) {
-	case Windows::System::VirtualKey::F1:
-		return PROJECTM_K_F1;
-	case Windows::System::VirtualKey::F2:
-		return PROJECTM_K_F2;
-	case Windows::System::VirtualKey::F3:
-		return PROJECTM_K_F3;
-	case Windows::System::VirtualKey::F4:
-		return PROJECTM_K_F4;
-	case Windows::System::VirtualKey::F5:
-		return PROJECTM_K_F5;
-	case Windows::System::VirtualKey::F6:
-		return PROJECTM_K_F6;
-	case Windows::System::VirtualKey::F7:
-		return PROJECTM_K_F7;
-	case Windows::System::VirtualKey::F8:
-		return PROJECTM_K_F8;
-	case Windows::System::VirtualKey::F9:
-		return PROJECTM_K_F9;
-	case Windows::System::VirtualKey::F10:
-		return PROJECTM_K_F10;
-	case Windows::System::VirtualKey::F11:
-		return PROJECTM_K_F11;
-	case Windows::System::VirtualKey::F12:
-		return PROJECTM_K_F12;
-	case Windows::System::VirtualKey::Escape:
-		return PROJECTM_K_ESCAPE;
-	case Windows::System::VirtualKey::A:
-		return PROJECTM_K_a;
-	case Windows::System::VirtualKey::B:
-		return PROJECTM_K_b;
-	case Windows::System::VirtualKey::C:
-		return PROJECTM_K_c;
-	case Windows::System::VirtualKey::D:
-		return PROJECTM_K_d;
-	case Windows::System::VirtualKey::E:
-		return PROJECTM_K_e;
-	case Windows::System::VirtualKey::F:
-		return PROJECTM_K_f;
-	case Windows::System::VirtualKey::G:
-		return PROJECTM_K_g;
-	case Windows::System::VirtualKey::H:
-		return PROJECTM_K_h;
-	case Windows::System::VirtualKey::I:
-		return PROJECTM_K_i;
-	case Windows::System::VirtualKey::J:
-		return PROJECTM_K_j;
-	case Windows::System::VirtualKey::K:
-		return PROJECTM_K_k;
-	case Windows::System::VirtualKey::L:
-		return PROJECTM_K_l;
-	case Windows::System::VirtualKey::M:
-		return PROJECTM_K_m;
-	case Windows::System::VirtualKey::N:
-		return PROJECTM_K_n;
-	case Windows::System::VirtualKey::O:
-		return PROJECTM_K_o;
-	case Windows::System::VirtualKey::P:
-		return PROJECTM_K_p;
-	case Windows::System::VirtualKey::Q:
-		return PROJECTM_K_q;
-	case Windows::System::VirtualKey::R:
-		return PROJECTM_K_r;
-	case Windows::System::VirtualKey::S:
-		return PROJECTM_K_s;
-	case Windows::System::VirtualKey::T:
-		return PROJECTM_K_t;
-	case Windows::System::VirtualKey::U:
-		return PROJECTM_K_u;
-	case Windows::System::VirtualKey::V:
-		return PROJECTM_K_v;
-	case Windows::System::VirtualKey::W:
-		return PROJECTM_K_w;
-	case Windows::System::VirtualKey::X:
-		return PROJECTM_K_x;
-	case Windows::System::VirtualKey::Y:
-		return PROJECTM_K_y;
-	case Windows::System::VirtualKey::Z:
-		return PROJECTM_K_z;
-	case Windows::System::VirtualKey::Up:
-		return PROJECTM_K_UP;
-	case Windows::System::VirtualKey::Enter:
-		return PROJECTM_K_RETURN;
-	case Windows::System::VirtualKey::Right:
-		return PROJECTM_K_RIGHT;
-	case Windows::System::VirtualKey::Left:
-		return PROJECTM_K_LEFT;
-	case Windows::System::VirtualKey::Down:
-		return PROJECTM_K_DOWN;
-	case Windows::System::VirtualKey::PageUp:
-		return PROJECTM_K_PAGEUP;
-	case Windows::System::VirtualKey::PageDown:
-		return PROJECTM_K_PAGEDOWN;
-
-	default:
-		return PROJECTM_K_NONE;
-	}
-	return projectMKeycode();
+	return reinterpret_cast<void*>(eglGetProcAddress(name));
 }
 
-void App::RecreateRenderer(std::string presetdir)
+void App::DestroyRenderer()
 {
 	if (app)
 	{
 		this->stoploopback();
 
+		// Needs the GL context that created the renderer to still be current.
+		projectm_playlist_destroy(playlist);
+		playlist = nullptr;
+		projectm_destroy(app);
 		app = nullptr;
 	}
+}
 
-    if (!app)
+void App::RecreateRenderer(std::string presetdir)
+{
+	DestroyRenderer();
+
+	app = projectm_create_with_opengl_load_proc(LoadGlProc, nullptr);
+	if (!app)
 	{
-		// "Config file not found, using development settings");
-		int height = 1080;
-		int width = 1920;
-		float heightWidthRatio = (float)height / (float)width;
-		projectM::Settings settings;
-		settings.windowWidth = width;
-		settings.windowHeight = height;
-		settings.meshX = 300;
-		settings.meshY = settings.meshX * heightWidthRatio;
-		settings.fps = 60;
-		settings.smoothPresetDuration = 3; // seconds
-		settings.presetDuration = 30; // seconds
-		settings.beatSensitivity = .9;
-		settings.aspectCorrection = 1;
-		settings.shuffleEnabled = 1;
-		settings.softCutRatingsEnabled = 1; // ???
-		// get path to our app, use CWD for presets/fonts/etc
-		std::wstring wpath = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
-		// wpath += L"\\Assets\\Logo.png";
+		Popup("Unable to start the renderer. This device needs OpenGL ES 3.0 support through Direct3D 11.");
+		return;
+	}
 
+	EGLint panelWidth = 0;
+	EGLint panelHeight = 0;
+	eglQuerySurface(mEglDisplay, mEglSurface, EGL_WIDTH, &panelWidth);
+	eglQuerySurface(mEglDisplay, mEglSurface, EGL_HEIGHT, &panelHeight);
 
-		//setup converter
-		using convert_type = std::codecvt_utf8<wchar_t>;
-		std::wstring_convert<convert_type, wchar_t> converter;
+	const int meshWidth = 300;
+	const float heightWidthRatio = 1080.0f / 1920.0f;
+	projectm_set_window_size(app, panelWidth, panelHeight);
+	projectm_set_mesh_size(app, meshWidth, static_cast<size_t>(meshWidth * heightWidthRatio));
+	projectm_set_fps(app, 60);
+	projectm_set_soft_cut_duration(app, 3); // seconds
+	projectm_set_preset_duration(app, 30); // seconds
+	projectm_set_beat_sensitivity(app, .9f);
+	projectm_set_aspect_correction(app, true);
 
-		//use converter (.to_bytes: wstr->str, .from_bytes: str->wstr)
-		std::string converted_str = converter.to_bytes(wpath);
+	// get path to our app, use CWD for presets
+	std::wstring wpath = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
 
-        //  std::string base_path = Managed_Str_To_Std_Str(localFolder->Path->ToString()) + "\\";
-		std::string base_path = converted_str;
-		// settings.presetURL = base_path + "\\presets_great\\";
-		settings.presetURL = base_path + presetdir;
-		// settings.presetURL = base_path;
-		//        settings.presetURL = base_path + "presets/presets_shader_test";
-		settings.menuFontURL = base_path + "fonts/Vera.ttf";
-		settings.titleFontURL = base_path + "fonts/Vera.ttf";
-		// init with settings
-		app = new projectM(settings, 0);
-		app->projectM_resetGL(400, 400);
-		app->renderFrame();
+	//setup converter
+	using convert_type = std::codecvt_utf8<wchar_t>;
+	std::wstring_convert<convert_type, wchar_t> converter;
 
-        EGLint panelWidth = 0;
-        EGLint panelHeight = 0;
-        eglQuerySurface(mEglDisplay, mEglSurface, EGL_WIDTH, &panelWidth);
-        eglQuerySurface(mEglDisplay, mEglSurface, EGL_HEIGHT, &panelHeight);
+	//use converter (.to_bytes: wstr->str, .from_bytes: str->wstr)
+	std::string preset_path = converter.to_bytes(wpath) + presetdir;
 
-        app->projectM_resetGL(panelWidth, panelHeight);
-        app->renderFrame();
+	const char* texture_paths[] = { preset_path.c_str() };
+	projectm_set_texture_search_paths(app, texture_paths, 1);
 
-		this->loopback();
+	playlist = projectm_playlist_create(app);
+	projectm_playlist_add_path(playlist, preset_path.c_str(), true, false);
+	projectm_playlist_set_shuffle(playlist, true);
+	projectm_playlist_play_next(playlist, true);
 
-    }
+	this->loopback();
 }
 
 // This method is called after the window becomes active.
@@ -357,10 +235,11 @@ void App::Run()
 
 						glClearColor(0.0, 0.0, 0.0, 0.0);
 						glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-						// app->projectM_resetGL(panelWidth, panelHeight);
             */
-						app->renderFrame();
-            // addFakePCM();
+						if (app)
+						{
+							projectm_opengl_render_frame(app);
+						}
 
             // The call to eglSwapBuffers might not be successful (e.g. due to Device Lost)
             // If the call fails, then we must reinitialize EGL and the GL resources.
@@ -369,6 +248,7 @@ void App::Run()
 
                 // mCubeRenderer.reset(nullptr);
 							 // TODO: anything required here?
+                DestroyRenderer();
                 CleanupEGL();
 
                 InitializeEGL(CoreWindow::GetForCurrentThread());
@@ -383,9 +263,8 @@ void App::Run()
 
 
 	// Perform teardown
+	DestroyRenderer();
     CleanupEGL();
-
-	this->StopCapture(nullptr, nullptr);
 
 }
 
@@ -434,7 +313,10 @@ void App::OnWindowKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Co
 			//case Windows::System::VirtualKey::GamepadB:
 			case Windows::System::VirtualKey::GamepadX:
 			case Windows::System::VirtualKey::GamepadY:
-				app->selectRandom(true);
+				if (projectm_playlist_size(playlist) > 0)
+				{
+					projectm_playlist_set_position(playlist, rand() % projectm_playlist_size(playlist), true);
+				}
 				break;
 
 			case Windows::System::VirtualKey::GamepadLeftShoulder:
@@ -442,14 +324,14 @@ void App::OnWindowKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Co
 			case Windows::System::VirtualKey::Space:
 			case Windows::System::VirtualKey::Control:
 				// handler for space key
-				app->setPresetLock(!app->isPresetLocked());
+				projectm_set_preset_locked(app, !projectm_get_preset_locked(app));
 				break;
 
 			case Windows::System::VirtualKey::GamepadDPadRight:
 			case Windows::System::VirtualKey::Right:
 			case Windows::System::VirtualKey::GamepadRightTrigger:
 			case Windows::System::VirtualKey::N:
-				app->selectNext(true);
+				projectm_playlist_play_next(playlist, true);
 				break;
 
 
@@ -477,17 +359,21 @@ void App::OnWindowKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Co
 			case Windows::System::VirtualKey::Left:
 			case Windows::System::VirtualKey::GamepadLeftTrigger:
 			case Windows::System::VirtualKey::P:
-				app->selectPrevious(true);
+				projectm_playlist_play_previous(playlist, true);
 				break;
 
 			case Windows::System::VirtualKey::GamepadView:
 			case Windows::System::VirtualKey::GamepadMenu:
 			case Windows::System::VirtualKey::F1:
 			case Windows::System::VirtualKey::Escape:
-				tester  = app->isPresetLocked();
+				tester  = projectm_get_preset_locked(app);
 				presetname = "PresetEyeD == ";
 				if (tester) presetname += "LOCKED: ";
-				presetname += app->renderer->presetName();
+				if (char* item = projectm_playlist_item(playlist, projectm_playlist_get_position(playlist)))
+				{
+					presetname += item;
+					projectm_playlist_free_string(item);
+				}
 				presetname = presetname +
 					"""\n"
 					"This help menu : F1 or ESC : GamepadMenu or GamepadView""\n"
@@ -505,10 +391,6 @@ void App::OnWindowKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Co
 			default:
 				break;
 			}
-
-			projectMEvent evt = PROJECTM_KEYDOWN;
-			projectMKeycode key = winKeycode(args);
-			app->default_key_handler(evt, key);
 		}
 	}
 }
@@ -548,7 +430,7 @@ void App::ResetSize()
 		eglQuerySurface(mEglDisplay, mEglSurface, EGL_WIDTH, &panelWidth);
 		eglQuerySurface(mEglDisplay, mEglSurface, EGL_HEIGHT, &panelHeight);
 
-		app->projectM_resetGL(panelWidth, panelHeight);
+		projectm_set_window_size(app, panelWidth, panelHeight);
 	}
 }
 

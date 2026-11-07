@@ -28,8 +28,6 @@
 
 
 #include "EyeTuneApp.h"
-#include "projectM.hpp"
-#include "Renderer.hpp"
 #include <locale> 
 #include <codecvt>
 

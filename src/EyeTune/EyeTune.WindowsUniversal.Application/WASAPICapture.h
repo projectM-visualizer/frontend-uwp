@@ -44,7 +44,7 @@
 #include "WASAPICaptureCommon.h"
 #include "WASAPICaptureDeviceState.h"
 
-#include "projectM.hpp"
+#include <projectM-4/projectM.h>
 
 using namespace Microsoft::WRL;
 using namespace Windows::Media::Devices;
@@ -72,7 +72,7 @@ namespace EyeTune
     WASAPICapture();
 
     HRESULT SetProperties(CAPTUREDEVICEPROPS props);
-    HRESULT InitializeAudioDeviceAsync(projectM* app);
+    HRESULT InitializeAudioDeviceAsync(projectm_handle app);
     HRESULT StartCaptureAsync();
     HRESULT StopCaptureAsync();
     HRESULT FinishCaptureAsync();
@@ -134,7 +134,7 @@ namespace EyeTune
     UINT32                      m_cPlotDataMax;
     UINT32                      m_cPlotDataFilled;
 	short                      *pi16;
-	projectM* m_app;
+	projectm_handle m_app;
     CAPTUREDEVICEPROPS          m_DeviceProps;
   };
 }
