@@ -49,6 +49,5 @@ Presets are kept in `src/EyeTune/presets`, because projectM no longer includes a
 The project files are still maintained by hand. Since the core team currently has no resources and lacks the required experience with writing UWP apps, we're in need of volunteers to help prepare this app for a future update. Here's a short To-Do list:
 
 - Remove the outdated VS solution files and [generate the project with CMake](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-windows-10-universal-applications), which will make it easier to keep it up to date with any new VS releases.
-- Add new CI/GitHub Actions build for building future releases.
 
 If you're interested in taking one or more of the above tasks, please feel free to fork, implement and create a pull request. If there are any questions, the projectM team is available on [the projectM Discord server](https://discord.gg/mMrxAqaa3W). Ideally, join the [development channel](https://discord.com/channels/737206408482914387/737600388944887819).
