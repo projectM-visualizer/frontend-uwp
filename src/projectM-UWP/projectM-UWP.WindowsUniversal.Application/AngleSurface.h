@@ -8,7 +8,7 @@
 #include <EGL/eglplatform.h>
 #include <angle_windowsstore.h>
 
-namespace EyeTune {
+namespace projectM_UWP {
 
 class AngleSurface final : public Core::IRenderSurface
 {
@@ -27,4 +27,4 @@ private:
     EGLSurface mEglSurface = EGL_NO_SURFACE;
 };
 
-} // namespace EyeTune
+} // namespace projectM_UWP

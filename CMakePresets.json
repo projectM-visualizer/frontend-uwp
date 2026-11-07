@@ -27,9 +27,9 @@
     }
   ],
   "buildPresets": [
-    { "name": "x64-debug", "configurePreset": "x64", "configuration": "Debug", "targets": "EyeTune" },
-    { "name": "x64-release", "configurePreset": "x64", "configuration": "Release", "targets": "EyeTune" },
-    { "name": "x86-debug", "configurePreset": "x86", "configuration": "Debug", "targets": "EyeTune" },
-    { "name": "x86-release", "configurePreset": "x86", "configuration": "Release", "targets": "EyeTune" }
+    { "name": "x64-debug", "configurePreset": "x64", "configuration": "Debug", "targets": "projectM-UWP" },
+    { "name": "x64-release", "configurePreset": "x64", "configuration": "Release", "targets": "projectM-UWP" },
+    { "name": "x86-debug", "configurePreset": "x86", "configuration": "Debug", "targets": "projectM-UWP" },
+    { "name": "x86-release", "configurePreset": "x86", "configuration": "Release", "targets": "projectM-UWP" }
   ]
 }

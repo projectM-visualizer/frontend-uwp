@@ -2,7 +2,7 @@
 // AngleSurface. Another platform can provide its own without changing the app.
 #pragma once
 
-namespace EyeTune {
+namespace projectM_UWP {
 namespace Core {
 
 class IRenderSurface
@@ -18,4 +18,4 @@ public:
 };
 
 } // namespace Core
-} // namespace EyeTune
+} // namespace projectM_UWP

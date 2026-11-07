@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <sstream>
 
-namespace EyeTune {
+namespace projectM_UWP {
 namespace Core {
 
 namespace {
@@ -201,4 +201,4 @@ std::string FileNameFromPath(const std::string& path)
 }
 
 } // namespace Core
-} // namespace EyeTune
+} // namespace projectM_UWP

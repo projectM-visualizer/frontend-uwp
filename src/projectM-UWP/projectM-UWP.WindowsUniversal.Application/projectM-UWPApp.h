@@ -1,5 +1,5 @@
 //*********************************************************
-// Designed for use in EyeTune Windows Store UWP Application.
+// Designed for use in projectM-UWP Windows Store UWP Application.
 // RobertPancoast77@gmail.com
 //
 //*********************************************************
@@ -23,7 +23,7 @@
 #include <string>
 #include <wrl.h>
 
-namespace EyeTune
+namespace projectM_UWP
 {
     ref class App sealed : public Windows::ApplicationModel::Core::IFrameworkView
     {

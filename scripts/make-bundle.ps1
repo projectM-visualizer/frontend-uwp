@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Path $packages | Out-Null
 $version = $null
 foreach ($build in @(@{ Preset = 'x64'; Arch = 'x64' }, @{ Preset = 'x86'; Arch = 'Win32' })) {
     $folder = Join-Path $root "build\$($build.Preset)\AppPackages"
-    $appx = Get-ChildItem $folder -Recurse -Filter "EyeTune_*_$($build.Arch)$suffix.appx" -ErrorAction SilentlyContinue |
+    $appx = Get-ChildItem $folder -Recurse -Filter "projectM-UWP_*_$($build.Arch)$suffix.appx" -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1
     if (-not $appx) {
@@ -42,7 +42,7 @@ if (-not $makeappx) {
     throw 'makeappx.exe not found. Install the Windows SDK.'
 }
 
-$bundle = Join-Path $output "EyeTune_${version}_x86_x64$suffix.appxbundle"
+$bundle = Join-Path $output "projectM-UWP_${version}_x86_x64$suffix.appxbundle"
 & $makeappx.FullName bundle /d $packages /p $bundle /bv $version /o
 if ($LASTEXITCODE -ne 0) {
     throw "makeappx failed with exit code $LASTEXITCODE."

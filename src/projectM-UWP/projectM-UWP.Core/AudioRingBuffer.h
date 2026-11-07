@@ -10,7 +10,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace EyeTune {
+namespace projectM_UWP {
 namespace Core {
 
 // Implemented by anything that accepts audio from a platform source.
@@ -52,4 +52,4 @@ private:
 };
 
 } // namespace Core
-} // namespace EyeTune
+} // namespace projectM_UWP

@@ -18,7 +18,7 @@
 // Microsoft / Windows - universal - samples licensed under the
 // MIT License
 //
-// Modified for use in EyeTune Windows Store UWP Application.
+// Modified for use in projectM-UWP Windows Store UWP Application.
 // RobertPancoast77@gmail.com
 // 
 
@@ -27,7 +27,7 @@
 using namespace Windows::Storage::Streams;
 
 
-namespace EyeTune
+namespace projectM_UWP
 {
   // NB: All states >= DeviceStateInitialized will allow some methods
   // to be called successfully on the Audio Client

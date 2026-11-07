@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace EyeTune {
+namespace projectM_UWP {
 namespace Core {
 
 AudioRingBuffer::AudioRingBuffer(std::size_t capacityFrames)
@@ -73,4 +73,4 @@ std::size_t AudioRingBuffer::AvailableFrames() const
 }
 
 } // namespace Core
-} // namespace EyeTune
+} // namespace projectM_UWP

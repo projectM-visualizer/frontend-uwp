@@ -71,7 +71,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: EyeTune-unsigned-bundle
+          name: projectM-UWP-unsigned-bundle
           path: build/bundle/Release/*.appxbundle
           if-no-files-found: error
           retention-days: 14

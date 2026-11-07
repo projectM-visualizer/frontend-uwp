@@ -8,10 +8,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$expectedName = '13183Mancoast.EyeTune'
+$expectedName = '13183Mancoast.projectM-UWP'
 $requiredFiles = @(
     'AppxManifest.xml',
-    'EyeTune.WindowsUniversal.Application.exe',
+    'projectM-UWP.WindowsUniversal.Application.exe',
     'libEGL.dll',
     'libGLESv2.dll',
     'projectM-4.dll',

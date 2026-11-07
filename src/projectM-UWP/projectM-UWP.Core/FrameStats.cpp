@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 
-namespace EyeTune {
+namespace projectM_UWP {
 namespace Core {
 
 FrameStats::FrameStats(double reportIntervalSeconds)
@@ -51,4 +51,4 @@ bool FrameStats::Poll(double nowSeconds, FrameReport& report)
 }
 
 } // namespace Core
-} // namespace EyeTune
+} // namespace projectM_UWP

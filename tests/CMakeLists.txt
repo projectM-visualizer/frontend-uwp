@@ -1,13 +1,13 @@
-# Unit tests for EyeTune.Core. This is a separate desktop project, because the
+# Unit tests for projectM-UWP.Core. This is a separate desktop project, because the
 # library has no UWP dependencies and UWP test binaries can't run in CI.
 #
 #   cmake -S tests -B build/tests
 #   cmake --build build/tests --config Release
 #   ctest --test-dir build/tests -C Release --output-on-failure
 cmake_minimum_required(VERSION 3.21)
-project(EyeTuneCoreTests LANGUAGES CXX)
+project(projectM-UWP-CoreTests LANGUAGES CXX)
 
-set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src/EyeTune/EyeTune.Core")
+set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../src/projectM-UWP/projectM-UWP.Core")
 
 add_executable(core_tests
     core_tests.cpp

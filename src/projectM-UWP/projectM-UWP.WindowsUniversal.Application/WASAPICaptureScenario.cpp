@@ -1,5 +1,5 @@
 //*********************************************************
-// Designed for use in EyeTune Windows Store UWP Application.
+// Designed for use in projectM-UWP Windows Store UWP Application.
 // RobertPancoast77@gmail.com
 //
 //*********************************************************
@@ -13,7 +13,7 @@
 //
 //*********************************************************
 
-#include "EyeTuneApp.h"
+#include "projectM-UWPApp.h"
 
 #include <mfapi.h>
 
@@ -21,7 +21,7 @@ using namespace Microsoft::WRL;
 using namespace Platform;
 using namespace Windows::Media::Devices;
 
-using namespace EyeTune;
+using namespace projectM_UWP;
 
 namespace
 {

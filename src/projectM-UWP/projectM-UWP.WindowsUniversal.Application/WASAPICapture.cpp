@@ -20,7 +20,7 @@
 // Microsoft / Windows - universal - samples licensed under the
 // MIT License
 //
-// Modified for use in EyeTune Windows Store UWP Application.
+// Modified for use in projectM-UWP Windows Store UWP Application.
 // RobertPancoast77@gmail.com
 // 
 
@@ -31,7 +31,7 @@
 #pragma comment(lib, "Mfuuid.lib")
 using namespace Windows::Storage;
 using namespace Windows::System::Threading;
-using namespace EyeTune;
+using namespace projectM_UWP;
 
 #define BITS_PER_BYTE 8
 

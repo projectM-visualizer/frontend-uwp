@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-using namespace EyeTune::Core;
+using namespace projectM_UWP::Core;
 
 namespace {
 

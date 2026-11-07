@@ -1,11 +1,11 @@
-projectM "EyeTune" Universal Windows Platform Frontend App
-==========================================================
+projectM-UWP: Universal Windows Platform Frontend App
+====================================================
 
-EyeTune is the Universal Windows Platform (UWP) application for projectM, published in the Microsoft Store. It brings the projectM/Milkdrop music visualizer to Windows through OpenGL ES, using ANGLE on Direct3D 11.
+projectM-UWP is the Universal Windows Platform (UWP) application for projectM, published in the Microsoft Store. It brings the projectM/Milkdrop music visualizer to Windows through OpenGL ES, using ANGLE on Direct3D 11.
 
 If you're looking for a classic desktop application, you might prefer [the SDL2-based frontend](https://github.com/projectM-visualizer/frontend-sdl).
 
-You can download EyeTune from the Windows Store: https://www.microsoft.com/p/projectm/9ndcvh0vcwjn
+You can download projectM-UWP from the Windows Store: https://www.microsoft.com/p/projectm/9ndcvh0vcwjn
 
 ## Features
 
@@ -67,7 +67,7 @@ cmake --build --preset x64-release
 
 The presets are `x64` and `x86` to configure, and `x64-debug`, `x64-release`, `x86-debug` and `x86-release` to build. Configuring downloads ANGLE from nuget.org, so the first run needs internet access.
 
-To use the Visual Studio IDE, open `build/x64/EyeTune.sln` after configuring. Change project settings in `CMakeLists.txt`, because that solution is regenerated.
+To use the Visual Studio IDE, open `build/x64/projectM-UWP.sln` after configuring. Change project settings in `CMakeLists.txt`, because that solution is regenerated.
 
 Packages are written to `build/<preset>/AppPackages`. To combine both architectures into one bundle and check it, build `x64-release` and `x86-release`, then run:
 
@@ -81,7 +81,7 @@ powershell -File scripts/validate-bundle.ps1
 Builds are unsigned by default. To sign, pass your certificate when configuring. This path hasn't been tested with a real certificate yet.
 
 ```
-cmake --preset x64 -DEYETUNE_PACKAGE_CERTIFICATE=C:/path/to/key.pfx -DEYETUNE_PACKAGE_THUMBPRINT=<thumbprint>
+cmake --preset x64 -DPROJECTM_UWP_PACKAGE_CERTIFICATE=C:/path/to/key.pfx -DPROJECTM_UWP_PACKAGE_THUMBPRINT=<thumbprint>
 ```
 
 ### Updating projectM
@@ -100,16 +100,16 @@ ctest --test-dir build/tests -C Release --output-on-failure
 
 GitHub Actions runs these tests, builds every configuration and validates the bundle on each push and pull request. CI doesn't launch the app, so see [testing](design.md#testing) for manual checks and how to run an unsigned build.
 
-The app writes frame rate, audio level and errors to `eyetune.log` in its `LocalState` folder.
+The app writes frame rate, audio level and errors to `projectM-UWP.log` in its `LocalState` folder.
 
 ## Project layout
 
 | Path | Contents |
 |---|---|
-| `src/EyeTune/EyeTune.WindowsUniversal.Application` | The app: window, input, audio capture and rendering |
-| `src/EyeTune/EyeTune.Core` | Platform-independent code, with unit tests |
-| `src/EyeTune/EyeTune.Shared` | UWP replacements applied to projectM |
-| `src/EyeTune/presets` | Bundled presets |
+| `src/projectM-UWP/projectM-UWP.WindowsUniversal.Application` | The app: window, input, audio capture and rendering |
+| `src/projectM-UWP/projectM-UWP.Core` | Platform-independent code, with unit tests |
+| `src/projectM-UWP/projectM-UWP.Shared` | UWP replacements applied to projectM |
+| `src/projectM-UWP/presets` | Bundled presets |
 | `src/projectm` | projectM, as an unmodified submodule |
 | `tests` | Unit tests |
 | `scripts` | Bundle creation and validation |
@@ -132,4 +132,4 @@ Contributions are welcome. Please feel free to fork, implement and create a pull
 
 ## License
 
-EyeTune is licensed under the [LGPL 2.1](LICENSE.md). See [licensing](design.md#licensing) for third-party components.
+projectM-UWP is licensed under the [LGPL 2.1](LICENSE.md). See [licensing](design.md#licensing) for third-party components.

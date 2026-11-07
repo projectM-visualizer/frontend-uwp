@@ -1,6 +1,6 @@
-# EyeTune design
+# projectM-UWP design
 
-How EyeTune is built, why, what has been verified, and what's still open. This replaces the earlier `docs/` and `specs/` folders and the modernization plan. Findings are **Verified** when they come from files, commits or a run on real hardware.
+How projectM-UWP is built, why, what has been verified, and what's still open. This replaces the earlier `docs/` and `specs/` folders and the modernization plan. Findings are **Verified** when they come from files, commits or a run on real hardware.
 
 ## Contents
 - [Status](#status)
@@ -30,10 +30,10 @@ Each stage of the modernization has a specification with acceptance criteria, li
 
 ## Architecture
 
-EyeTune is a native UWP app. It stays C++/CX with a `CoreWindow` and doesn't use XAML or C# ([decision 1](#1-keep-the-native-corewindow-app)).
+projectM-UWP is a native UWP app. It stays C++/CX with a `CoreWindow` and doesn't use XAML or C# ([decision 1](#1-keep-the-native-corewindow-app)).
 
 ```text
-                 App (EyeTuneApp.cpp)
+                 App (projectM-UWPApp.cpp)
        Window | Lifecycle | Input | Settings | Log
               |              |              |
               v              v              v
@@ -48,11 +48,11 @@ EyeTune is a native UWP app. It stays C++/CX with a `CoreWindow` and doesn't use
 
 | Layer | Files | Rule |
 |---|---|---|
-| App shell | `EyeTuneApp`, `WASAPICaptureScenario` | Knows about Windows. Doesn't call projectM or EGL directly, except for passing `eglGetProcAddress` to projectM |
+| App shell | `projectM-UWPApp`, `WASAPICaptureScenario` | Knows about Windows. Doesn't call projectM or EGL directly, except for passing `eglGetProcAddress` to projectM |
 | Engine | `Visualizer` | The only code that calls projectM |
 | Surface | `AngleSurface`, behind `IRenderSurface` | The only code that creates EGL objects |
 | Audio source | `WASAPICapture`, behind `IAudioSink` | Only delivers samples. It knows nothing about projectM |
-| Core | `src/EyeTune/EyeTune.Core` | No platform dependencies, and unit tested |
+| Core | `src/projectM-UWP/projectM-UWP.Core` | No platform dependencies, and unit tested |
 
 Adding a platform means providing a new surface and audio source. `Visualizer` and Core don't change.
 
@@ -112,7 +112,7 @@ These live in the app's `LocalState` folder.
 |---|---|
 | `settings.txt` | Preferences and favorites |
 | `presets\` | Imported presets |
-| `eyetune.log` | Frame rate, audio level, memory and errors, written every 10 seconds |
+| `projectM-UWP.log` | Frame rate, audio level, memory and errors, written every 10 seconds |
 
 ## Decisions
 
@@ -120,7 +120,7 @@ These live in the app's `LocalState` folder.
 
 #### Context
 
-EyeTune has always been C++/CX on a CoreWindow, with no XAML. A C# and XAML shell, or WinUI 3, could provide a richer interface.
+projectM-UWP has always been C++/CX on a CoreWindow, with no XAML. A C# and XAML shell, or WinUI 3, could provide a richer interface.
 
 #### Decision
 
@@ -240,11 +240,11 @@ Microsoft's guidance, from a page now in its [archived UWP documentation](https:
 | DirectX | DirectX 11, feature level 10.1 | DirectX 11 and 12, feature level 11.0 |
 | Architecture | x64 | x64 |
 
-What that means for EyeTune:
+What that means for projectM-UWP:
 
 - **Memory:** the app measured 135 to 212 MB on Windows, well within 1 GB.
 - **Graphics:** ANGLE targets Direct3D 11, and feature level 10.1 is above the app's 10_0 request. Whether its shaders run acceptably on a share of the GPU is unknown. Xbox One's performance is the main risk.
-- **Audio:** whether an app can capture other apps' audio on a console is unknown. The plan's expected fallback is visualizing audio that EyeTune itself plays, which the app doesn't have yet.
+- **Audio:** whether an app can capture other apps' audio on a console is unknown. The plan's expected fallback is visualizing audio that projectM-UWP itself plays, which the app doesn't have yet.
 - **Input:** gamepad buttons are mapped, and have not been tested. Import, favorites and audio source keys have no gamepad mapping yet.
 - **Import:** the file picker's behaviour on a console is untested.
 
@@ -258,7 +258,7 @@ The layers allow for it. A console audio source would write to `IAudioSink`, and
 
 ### Unit tests
 
-`EyeTune.Core` has no platform dependencies, so its tests run on any desktop Visual Studio toolset:
+`projectM-UWP.Core` has no platform dependencies, so its tests run on any desktop Visual Studio toolset:
 
 ```
 cmake -S tests -B build/tests
@@ -283,7 +283,7 @@ CI doesn't launch the app, so it can't detect rendering or audio faults, or star
 You need Developer Mode. Unsigned packages can't be installed normally, so register an unpacked package:
 
 ```powershell
-Copy-Item build\x64\AppPackages\EyeTune_0.9.7.0_x64_Test\EyeTune_0.9.7.0_x64.appx build\x64\package.zip
+Copy-Item build\x64\AppPackages\projectM-UWP_0.9.7.0_x64_Test\projectM-UWP_0.9.7.0_x64.appx build\x64\package.zip
 Expand-Archive build\x64\package.zip build\x64\layout
 Remove-Item build\x64\layout\AppxBlockMap.xml
 Remove-Item -LiteralPath 'build\x64\layout\[Content_Types].xml'
@@ -297,7 +297,7 @@ Keep the folder until you uninstall, because the app runs from it. Debug package
 Run these on x64 and x86 before a release. Keys, import, settings and resume have been confirmed on x64 only. Microphone capture hasn't been confirmed, because the test session had no input device.
 
 - [ ] Visuals appear and react to music, and stop reacting when it's paused
-- [ ] `eyetune.log` shows a non-zero `peak` while audio plays
+- [ ] `projectM-UWP.log` shows a non-zero `peak` while audio plays
 - [ ] `F1` shows the current preset and help
 - [ ] `N`, `P` and `R` change preset, and `Space` locks it
 - [ ] `L` adds a favorite, and `V` plays favorites only
@@ -311,7 +311,7 @@ Run these on x64 and x86 before a release. Keys, import, settings and resume hav
 
 ### Measurements
 
-Release builds on Windows 11, NVIDIA RTX A6000, over a remote display session running at 32 Hz. Measured from `eyetune.log`.
+Release builds on Windows 11, NVIDIA RTX A6000, over a remote display session running at 32 Hz. Measured from `projectM-UWP.log`.
 
 | Measure | x64 | x86 |
 |---|---|---|
@@ -333,7 +333,7 @@ A record of what's in this repository and what its files say about licensing. Th
 
 | Component | Used as | License | Source of this information |
 |---|---|---|---|
-| EyeTune | This repository | LGPL 2.1 | `LICENSE.md` |
+| projectM-UWP | This repository | LGPL 2.1 | `LICENSE.md` |
 | projectM | Submodule | LGPL 2.1 | `src/projectm/LICENSE.txt` |
 | projectm-eval | Nested submodule | MIT | `vendor/projectm-eval/LICENSE.md` |
 | hlslparser | Vendored by projectM | MIT | `vendor/hlslparser/LICENSE` |
@@ -349,8 +349,8 @@ LGPL 2.1 applies to how projectM is distributed with the app. Check that a Store
 
 **Status: unresolved. An audit is needed before a public release.**
 
-- There are 29 presets in `src/EyeTune/presets/presets_eyetune`.
-- They came from projectM 3.1.12's `presets/presets_eyetune` folder, added there in late 2019.
+- There are 29 presets in `src/projectM-UWP/presets/presets_projectM-UWP`.
+- They came from projectM 3.1.12's `presets/presets_projectM-UWP` folder, added there in late 2019.
 - None of the files contains license or copyright text.
 - File names credit authors, including Geiss, Rovastar, Zylot, EoS, Stahlregen, martin and flexi. That shows attribution, not permission.
 - projectM's repository license doesn't automatically cover every preset, and projectM no longer ships presets at all.
@@ -361,11 +361,11 @@ Imported presets belong to the user and stay on their device.
 
 ### Branding
 
-The EyeTune name, publisher identity and Store association are kept unchanged. Changing them needs the owner's agreement.
+The projectM-UWP name, publisher identity and Store association are kept unchanged. Changing them needs the owner's agreement.
 
 ## History
 
-What this repository shows about how EyeTune was built, what changed during modernization, and what is still unknown. Findings are marked **Verified** (from files, commits or a run on real hardware) or **Unverified**.
+What this repository shows about how projectM-UWP was built, what changed during modernization, and what is still unknown. Findings are marked **Verified** (from files, commits or a run on real hardware) or **Unverified**.
 
 ### 1. Repository and history
 
@@ -376,7 +376,7 @@ What this repository shows about how EyeTune was built, what changed during mode
 
 ### 2. Original architecture
 
-EyeTune was a single native C++/CX app. There was no XAML and no C#. **Verified.**
+projectM-UWP was a single native C++/CX app. There was no XAML and no C#. **Verified.**
 
 `App` implemented `IFrameworkView` on a `CoreWindow`, created EGL through ANGLE, owned a `projectM*`, and rendered in its own loop. A second project built projectM into a DLL. Input came from `CoreWindow.KeyDown`, with gamepad buttons arriving as `VirtualKey` values.
 
@@ -386,9 +386,9 @@ Preserved from the original manifest and unchanged by modernization:
 
 | Field | Value |
 |---|---|
-| Identity | `13183Mancoast.EyeTune` |
+| Identity | `13183Mancoast.projectM-UWP` |
 | Publisher | `CN=272C27CF-652F-4A95-9E3B-7A86D492CC37` |
-| Display name | EyeTune |
+| Display name | projectM-UWP |
 | Publisher name | Mancoast Research Institute |
 | Version | 0.9.7.0 |
 | Target family | `Windows.Universal` |
@@ -419,7 +419,7 @@ ANGLE on Direct3D 11, OpenGL ES 3 context, drawn with feature level fallback fro
 
 ### 7. Presets and assets
 
-29 `.milk` presets, added upstream in October and November 2019 (`7cf01eb11`, `c58885a53`, `4bf395c4b`, in projectM's history). projectM removed all presets from its repository later, so they are now kept in `src/EyeTune/presets`. See [licensing](#licensing).
+29 `.milk` presets, added upstream in October and November 2019 (`7cf01eb11`, `c58885a53`, `4bf395c4b`, in projectM's history). projectM removed all presets from its repository later, so they are now kept in `src/projectM-UWP/presets`. See [licensing](#licensing).
 
 The "experimental" preset folder has never contained anything. It maps to a `presets_community` folder that isn't in projectM 3.1.12 or this repository. **Verified.**
 
@@ -477,7 +477,7 @@ An evidence-based inventory of the original app.
 
 | Criterion | Status | Evidence |
 |---|---|---|
-| History, architecture and dependencies are documented with citations | Done | docs/historical/eyetune-reconstruction.md |
+| History, architecture and dependencies are documented with citations | Done | [History](#history) |
 | Verified facts are separated from open questions | Done | Same document |
 | A risk register exists | Done | Same document, section 12 |
 
@@ -507,7 +507,7 @@ Use only the supported C API.
 |---|---|---|
 | The app uses only the C and playlist APIs | Done | All calls are in Visualizer |
 | projectM is pinned to a known revision | Done | eae22de4 |
-| Interop and ownership rules are documented | Done | docs/architecture/overview.md |
+| Interop and ownership rules are documented | Done | [Architecture](#architecture) |
 
 ### 004 Rendering modernization
 
@@ -559,7 +559,7 @@ Preserve existing workflows and add scoped improvements.
 | User preset import | Done | Confirmed on x64 |
 | Configurable preset duration | Done | Confirmed on x64 |
 | Suspend and resume | Done | Audio restarted after resume on x64 |
-| Diagnostics | Done | eyetune.log was used for the measurements |
+| Diagnostics | Done | projectM-UWP.log was used for the measurements |
 | Search and categories | Not done | Needs a text interface, see decision 1 |
 | Gamepad navigation on Xbox | Not done | Needs a console |
 
@@ -576,6 +576,6 @@ Repeatable automated validation.
 | Pull requests get automated builds | Done | .github/workflows/build.yml |
 | Unit tests run in CI | Done | Same workflow |
 | Package architecture and identity are validated | Done | Same workflow |
-| Developer Mode testing is documented | Done | docs/testing.md |
+| Developer Mode testing is documented | Done | [Testing](#testing) |
 | Signing is verified | Not done | Needs the Store certificate |
 | Licenses and redistribution are audited | Not done | Inventory exists, and the preset decision is open |

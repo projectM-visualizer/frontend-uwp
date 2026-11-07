@@ -6,7 +6,7 @@ using namespace Windows::Foundation;
 using namespace Windows::Foundation::Collections;
 using namespace Windows::UI::Core;
 
-using namespace EyeTune;
+using namespace projectM_UWP;
 
 void AngleSurface::Initialize(CoreWindow^ window)
 {

@@ -1,5 +1,5 @@
 //*********************************************************
-// Designed for use in EyeTune Windows Store UWP Application.
+// Designed for use in projectM-UWP Windows Store UWP Application.
 // RobertPancoast77@gmail.com
 //
 //*********************************************************
@@ -8,8 +8,8 @@
 //
 //*********************************************************
 
-#include "EyeTuneApp.h"
-#include "EyeTunePopUp.h"
+#include "projectM-UWPApp.h"
+#include "projectM-UWPPopUp.h"
 
 #include <chrono>
 #include <cstdio>
@@ -33,7 +33,7 @@ using namespace Windows::System;
 using namespace Windows::UI::Core;
 using namespace Windows::UI::ViewManagement;
 
-using namespace EyeTune;
+using namespace projectM_UWP;
 
 namespace
 {
@@ -152,7 +152,7 @@ void App::SetWindow(CoreWindow^ window)
 void App::Load(String^ entryPoint)
 {
     mLocalFolder = ApplicationData::Current->LocalFolder->Path->Data();
-    mLogPath = mLocalFolder + L"\\eyetune.log";
+    mLogPath = mLocalFolder + L"\\projectM-UWP.log";
     std::ofstream(mLogPath, std::ios::trunc).close();
 
     LoadSettings();
@@ -539,7 +539,7 @@ void App::ShowHelp()
 
 void App::ReportAudioUnavailable()
 {
-    Popup("No audio device is available, so the visuals won't react to sound. EyeTune will try again when the default audio device changes.");
+    Popup("No audio device is available, so the visuals won't react to sound. projectM-UWP will try again when the default audio device changes.");
 }
 
 void App::LoadSettings()

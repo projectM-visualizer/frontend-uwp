@@ -361,7 +361,7 @@
     <Language Code="zu-za" InMinimumRequirementSet="true" />
   </SupportedLocales>
   <ProductReservedInfo>
-    <MainPackageIdentityName>13183Mancoast.EyeTune</MainPackageIdentityName>
+    <MainPackageIdentityName>13183Mancoast.projectM-UWP</MainPackageIdentityName>
     <ReservedNames>
       <ReservedName>EyeTune</ReservedName>
       <ReservedName>Milkdrop</ReservedName>

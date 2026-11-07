@@ -1,4 +1,4 @@
-// The only code in EyeTune that calls projectM. It wraps the C and playlist APIs,
+// The only code in projectM-UWP that calls projectM. It wraps the C and playlist APIs,
 // so the rest of the app doesn't depend on their handles or memory rules.
 #pragma once
 
@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace EyeTune {
+namespace projectM_UWP {
 
 class Visualizer
 {
@@ -58,4 +58,4 @@ private:
     std::vector<std::int16_t> m_audio;
 };
 
-} // namespace EyeTune
+} // namespace projectM_UWP

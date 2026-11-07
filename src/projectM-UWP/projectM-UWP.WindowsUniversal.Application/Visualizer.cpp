@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 
-namespace EyeTune {
+namespace projectM_UWP {
 
 namespace {
 
@@ -200,4 +200,4 @@ std::string Visualizer::CurrentPresetPath() const
     return path;
 }
 
-} // namespace EyeTune
+} // namespace projectM_UWP

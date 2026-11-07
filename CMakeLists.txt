@@ -2,13 +2,13 @@ cmake_minimum_required(VERSION 3.21)
 
 # Configure through CMakePresets.json, which selects UWP and the v142 toolset.
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "WindowsStore")
-    message(FATAL_ERROR "EyeTune is a UWP app. Configure it with: cmake --preset x64")
+    message(FATAL_ERROR "projectM-UWP is a UWP app. Configure it with: cmake --preset x64")
 endif()
 
-project(EyeTune VERSION 0.9.7 LANGUAGES C CXX)
+project(projectM-UWP VERSION 0.9.7 LANGUAGES C CXX)
 
-set(EYETUNE_PACKAGE_CERTIFICATE "" CACHE FILEPATH "Certificate (.pfx) used to sign the app package. Leave empty to build unsigned.")
-set(EYETUNE_PACKAGE_THUMBPRINT "" CACHE STRING "Thumbprint of EYETUNE_PACKAGE_CERTIFICATE.")
+set(PROJECTM_UWP_PACKAGE_CERTIFICATE "" CACHE FILEPATH "Certificate (.pfx) used to sign the app package. Leave empty to build unsigned.")
+set(PROJECTM_UWP_PACKAGE_THUMBPRINT "" CACHE STRING "Thumbprint of PROJECTM_UWP_PACKAGE_CERTIFICATE.")
 
 # --- ANGLE, which provides OpenGL ES on top of Direct3D 11 ---------------------
 
@@ -32,7 +32,7 @@ if(CMAKE_VS_PLATFORM_NAME STREQUAL "Win32")
 elseif(CMAKE_VS_PLATFORM_NAME STREQUAL "x64")
     set(ANGLE_ARCH x64)
 else()
-    message(FATAL_ERROR "EyeTune builds for x64 and Win32, not ${CMAKE_VS_PLATFORM_NAME}.")
+    message(FATAL_ERROR "projectM-UWP builds for x64 and Win32, not ${CMAKE_VS_PLATFORM_NAME}.")
 endif()
 
 set(ANGLE_BIN "${ANGLE_DIR}/build/native/Release_${ANGLE_ARCH}")
@@ -61,7 +61,7 @@ set(CMAKE_DISABLE_FIND_PACKAGE_BISON ON)
 add_subdirectory(src/projectm EXCLUDE_FROM_ALL)
 
 # DynamicLibrary_win32.cpp calls Win32 loader APIs that UWP doesn't have.
-set(UWP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/EyeTune/EyeTune.Shared")
+set(UWP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/projectM-UWP/projectM-UWP.Shared")
 set_source_files_properties(
     "${CMAKE_CURRENT_SOURCE_DIR}/src/projectm/src/libprojectM/Renderer/Platform/DynamicLibrary_win32.cpp"
     TARGET_DIRECTORY Renderer
@@ -93,11 +93,11 @@ endif()
 
 target_compile_options(Renderer PRIVATE "/FI${UWP_DIR}/uwp_compat.h")
 
-# --- EyeTune.Core, the code with no platform dependencies -------------------------
+# --- projectM-UWP.Core, the code with no platform dependencies -------------------------
 
-set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/EyeTune/EyeTune.Core")
+set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/projectM-UWP/projectM-UWP.Core")
 
-add_library(EyeTuneCore STATIC
+add_library(projectM-UWP-Core STATIC
     "${CORE_DIR}/AudioRingBuffer.cpp"
     "${CORE_DIR}/AudioRingBuffer.h"
     "${CORE_DIR}/FrameStats.cpp"
@@ -106,14 +106,14 @@ add_library(EyeTuneCore STATIC
     "${CORE_DIR}/Settings.cpp"
     "${CORE_DIR}/Settings.h"
 )
-target_include_directories(EyeTuneCore PUBLIC "${CORE_DIR}")
-target_compile_features(EyeTuneCore PUBLIC cxx_std_14)
+target_include_directories(projectM-UWP-Core PUBLIC "${CORE_DIR}")
+target_compile_features(projectM-UWP-Core PUBLIC cxx_std_14)
 
-# --- EyeTune app ----------------------------------------------------------------
+# --- projectM-UWP app ----------------------------------------------------------------
 
-set(APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/EyeTune/EyeTune.WindowsUniversal.Application")
+set(APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/projectM-UWP/projectM-UWP.WindowsUniversal.Application")
 
-file(GLOB PRESETS CONFIGURE_DEPENDS "src/EyeTune/presets/presets_eyetune/*.milk")
+file(GLOB PRESETS CONFIGURE_DEPENDS "src/projectM-UWP/presets/presets_projectM-UWP/*.milk")
 file(GLOB APP_IMAGES CONFIGURE_DEPENDS "${APP_DIR}/Assets/*.png")
 set(ANGLE_DLLS "${ANGLE_BIN}/libEGL.dll" "${ANGLE_BIN}/libGLESv2.dll")
 
@@ -124,12 +124,12 @@ set_source_files_properties(${APP_IMAGES} PROPERTIES
 set_source_files_properties(${ANGLE_DLLS} PROPERTIES
     VS_DEPLOYMENT_CONTENT 1 VS_DEPLOYMENT_LOCATION ".")
 
-add_executable(EyeTune WIN32
+add_executable(projectM-UWP WIN32
     "${APP_DIR}/AngleSurface.cpp"
     "${APP_DIR}/AngleSurface.h"
-    "${APP_DIR}/EyeTuneApp.cpp"
-    "${APP_DIR}/EyeTuneApp.h"
-    "${APP_DIR}/EyeTunePopUp.h"
+    "${APP_DIR}/projectM-UWPApp.cpp"
+    "${APP_DIR}/projectM-UWPApp.h"
+    "${APP_DIR}/projectM-UWPPopUp.h"
     "${APP_DIR}/Visualizer.cpp"
     "${APP_DIR}/Visualizer.h"
     "${APP_DIR}/WASAPICapture.cpp"
@@ -143,27 +143,27 @@ add_executable(EyeTune WIN32
     ${ANGLE_DLLS}
 )
 
-set_target_properties(EyeTune PROPERTIES
-    OUTPUT_NAME EyeTune.WindowsUniversal.Application
+set_target_properties(projectM-UWP PROPERTIES
+    OUTPUT_NAME projectM-UWP.WindowsUniversal.Application
     VS_WINRT_COMPONENT TRUE
     VS_GLOBAL_AppxBundle Never
     VS_GLOBAL_GenerateAppxPackageOnBuild true
     VS_GLOBAL_AppxPackageDir "${CMAKE_BINARY_DIR}/AppPackages/"
 )
 
-if(EYETUNE_PACKAGE_CERTIFICATE)
-    set_target_properties(EyeTune PROPERTIES
+if(PROJECTM_UWP_PACKAGE_CERTIFICATE)
+    set_target_properties(projectM-UWP PROPERTIES
         VS_GLOBAL_AppxPackageSigningEnabled true
-        VS_GLOBAL_PackageCertificateKeyFile "${EYETUNE_PACKAGE_CERTIFICATE}"
-        VS_GLOBAL_PackageCertificateThumbprint "${EYETUNE_PACKAGE_THUMBPRINT}"
+        VS_GLOBAL_PackageCertificateKeyFile "${PROJECTM_UWP_PACKAGE_CERTIFICATE}"
+        VS_GLOBAL_PackageCertificateThumbprint "${PROJECTM_UWP_PACKAGE_THUMBPRINT}"
     )
 else()
-    set_target_properties(EyeTune PROPERTIES VS_GLOBAL_AppxPackageSigningEnabled false)
+    set_target_properties(projectM-UWP PROPERTIES VS_GLOBAL_AppxPackageSigningEnabled false)
 endif()
 
-target_include_directories(EyeTune PRIVATE "${APP_DIR}" "${ANGLE_DIR}/build/native/include")
-target_compile_definitions(EyeTune PRIVATE
-    EYETUNE_WINRT
+target_include_directories(projectM-UWP PRIVATE "${APP_DIR}" "${ANGLE_DIR}/build/native/include")
+target_compile_definitions(projectM-UWP PRIVATE
+    PROJECTM_UWP_WINRT
     NOMINMAX
     GL_GLEXT_PROTOTYPES
     EGL_EGLEXT_PROTOTYPES
@@ -171,10 +171,10 @@ target_compile_definitions(EyeTune PRIVATE
     _CRT_SECURE_NO_DEPRECATE
     _SCL_SECURE_NO_WARNINGS
 )
-target_compile_options(EyeTune PRIVATE /bigobj /wd4453 /wd28204 /wd4244)
-target_link_directories(EyeTune PRIVATE "${ANGLE_BIN}")
-target_link_libraries(EyeTune PRIVATE
-    EyeTuneCore
+target_compile_options(projectM-UWP PRIVATE /bigobj /wd4453 /wd28204 /wd4244)
+target_link_directories(projectM-UWP PRIVATE "${ANGLE_BIN}")
+target_link_libraries(projectM-UWP PRIVATE
+    projectM-UWP-Core
     libprojectM::projectM
     libprojectM::playlist
     libEGL.lib
@@ -182,4 +182,4 @@ target_link_libraries(EyeTune PRIVATE
     mincore.lib
 )
 
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT EyeTune)
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT projectM-UWP)

@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace EyeTune {
+namespace projectM_UWP {
 namespace Core {
 
 struct FrameReport
@@ -37,4 +37,4 @@ private:
 };
 
 } // namespace Core
-} // namespace EyeTune
+} // namespace projectM_UWP

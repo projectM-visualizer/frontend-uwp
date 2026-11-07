@@ -20,7 +20,7 @@
 // Microsoft / Windows - universal - samples licensed under the
 // MIT License
 //
-// Modified for use in EyeTune Windows Store UWP Application.
+// Modified for use in projectM-UWP Windows Store UWP Application.
 // RobertPancoast77@gmail.com
 // 
 
@@ -29,7 +29,7 @@
 // Microsoft / Windows - universal - samples licensed under the
 // MIT License
 //
-// Modified for use in EyeTune Windows Store UWP Application.
+// Modified for use in projectM-UWP Windows Store UWP Application.
 // RobertPancoast77@gmail.com
 // 
 
@@ -58,7 +58,7 @@ using namespace Windows::Storage::Streams;
 
 #pragma once
 
-namespace EyeTune
+namespace projectM_UWP
 {
   // User Configurable Arguments for Scenario
   struct CAPTUREDEVICEPROPS
