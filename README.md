@@ -121,6 +121,8 @@ The app writes frame rate, audio level and errors to `eyetune.log` in its `Local
 - Xbox, Store submission and signing are untested.
 - The bundled presets' redistribution rights need auditing. See [licensing](docs/licensing.md).
 - There's no on-screen preset browser or search, because the app has no XAML interface.
+- In favorites-only mode, newly imported presets stay hidden until you add them as favorites or turn the mode off.
+- Microphone capture and x86 keyboard controls haven't been confirmed yet.
 - projectM is pinned to an unreleased commit, with a local fix for an x86 crash until upstream takes it.
 
 See [specs](specs/README.md) for what's done and what's open.

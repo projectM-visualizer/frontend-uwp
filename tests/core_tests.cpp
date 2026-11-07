@@ -213,6 +213,11 @@ void TestFileNameFromPath()
     CHECK(FileNameFromPath("a/b.milk") == "b.milk");
     CHECK(FileNameFromPath("b.milk") == "b.milk");
     CHECK(FileNameFromPath("").empty());
+    CHECK(FileNameFromPath("C:/p/EoS%20-%20a%2Bb.milk") == "EoS - a+b.milk");
+    CHECK(FileNameFromPath("100% not hex %zz.milk") == "100% not hex %zz.milk");
+    CHECK(FileNameFromPath("ends with %2") == "ends with %2");
+    CHECK(Settings::Parse("favorite=a%20b.milk\nfavorite=a b.milk\n").favorites.size() == 1);
+    CHECK(Settings::Parse("favorite=a%20b.milk\n").IsFavorite("a b.milk"));
 }
 
 void TestFrameStats()

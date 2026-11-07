@@ -40,7 +40,8 @@ struct Settings
     void AdjustPresetDuration(int deltaSeconds);
 };
 
-// Returns the file name from a path that uses either kind of slash.
+// Returns the readable file name from a preset path. The path can use either kind
+// of slash, and %XX escapes are decoded, because the playlist reports escaped paths.
 std::string FileNameFromPath(const std::string& path);
 
 } // namespace Core

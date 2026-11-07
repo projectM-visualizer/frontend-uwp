@@ -50,6 +50,47 @@ int Clamp(int value, int low, int high)
     return std::max(low, std::min(value, high));
 }
 
+int HexValue(char c)
+{
+    if (c >= '0' && c <= '9')
+    {
+        return c - '0';
+    }
+    if (c >= 'a' && c <= 'f')
+    {
+        return c - 'a' + 10;
+    }
+    if (c >= 'A' && c <= 'F')
+    {
+        return c - 'A' + 10;
+    }
+    return -1;
+}
+
+std::string DecodeEscapes(const std::string& text)
+{
+    std::string decoded;
+    decoded.reserve(text.size());
+
+    for (std::size_t i = 0; i < text.size(); ++i)
+    {
+        if (text[i] == '%' && i + 2 < text.size())
+        {
+            const int high = HexValue(text[i + 1]);
+            const int low = HexValue(text[i + 2]);
+            if (high >= 0 && low >= 0)
+            {
+                decoded.push_back(static_cast<char>(high * 16 + low));
+                i += 2;
+                continue;
+            }
+        }
+        decoded.push_back(text[i]);
+    }
+
+    return decoded;
+}
+
 } // namespace
 
 Settings Settings::Parse(const std::string& text)
@@ -102,9 +143,13 @@ Settings Settings::Parse(const std::string& text)
                 settings.audioSource = AudioSourceKind::Microphone;
             }
         }
-        else if (key == "favorite" && !value.empty() && !settings.IsFavorite(value))
+        else if (key == "favorite" && !value.empty())
         {
-            settings.favorites.push_back(value);
+            const std::string favorite = FileNameFromPath(value);
+            if (!settings.IsFavorite(favorite))
+            {
+                settings.favorites.push_back(favorite);
+            }
         }
     }
 
@@ -152,7 +197,7 @@ void Settings::AdjustPresetDuration(int deltaSeconds)
 std::string FileNameFromPath(const std::string& path)
 {
     const std::size_t slash = path.find_last_of("/\\");
-    return slash == std::string::npos ? path : path.substr(slash + 1);
+    return DecodeEscapes(slash == std::string::npos ? path : path.substr(slash + 1));
 }
 
 } // namespace Core
