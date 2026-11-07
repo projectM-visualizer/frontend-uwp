@@ -5,7 +5,7 @@ timestamp() {
 }
 
 # Options
-repo=projectm
+repo=frontend-uwp
 SRC=/c/GIT/$repo
 
 echo "Building EyeTune"

@@ -1,5 +1,17 @@
 /src/.vs
 *.user
-/src/EyeTune/EyeTune.WindowsUniversal.Application/x64
-/src/EyeTune/projectM.WindowsUniversal.SharedLibrary/x64
+*.pfx
 /src/packages
+
+# Build output
+/src/x64
+/src/Win32
+/src/Debug
+/src/Release
+/src/AppPackages
+/src/build_logs
+/src/EyeTune/*/x64
+/src/EyeTune/*/Win32
+/src/EyeTune/*/Debug
+/src/EyeTune/*/Release
+/src/EyeTune/*/BundleArtifacts

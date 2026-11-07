@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Options
-repo=projectm
+repo=frontend-uwp
 SRC=/c/GIT/$repo
 
 # Define a timestamp function
