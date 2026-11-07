@@ -93,6 +93,22 @@ endif()
 
 target_compile_options(Renderer PRIVATE "/FI${UWP_DIR}/uwp_compat.h")
 
+# --- EyeTune.Core, the code with no platform dependencies -------------------------
+
+set(CORE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/EyeTune/EyeTune.Core")
+
+add_library(EyeTuneCore STATIC
+    "${CORE_DIR}/AudioRingBuffer.cpp"
+    "${CORE_DIR}/AudioRingBuffer.h"
+    "${CORE_DIR}/FrameStats.cpp"
+    "${CORE_DIR}/FrameStats.h"
+    "${CORE_DIR}/IRenderSurface.h"
+    "${CORE_DIR}/Settings.cpp"
+    "${CORE_DIR}/Settings.h"
+)
+target_include_directories(EyeTuneCore PUBLIC "${CORE_DIR}")
+target_compile_features(EyeTuneCore PUBLIC cxx_std_14)
+
 # --- EyeTune app ----------------------------------------------------------------
 
 set(APP_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/EyeTune/EyeTune.WindowsUniversal.Application")
@@ -109,10 +125,13 @@ set_source_files_properties(${ANGLE_DLLS} PROPERTIES
     VS_DEPLOYMENT_CONTENT 1 VS_DEPLOYMENT_LOCATION ".")
 
 add_executable(EyeTune WIN32
+    "${APP_DIR}/AngleSurface.cpp"
+    "${APP_DIR}/AngleSurface.h"
     "${APP_DIR}/EyeTuneApp.cpp"
     "${APP_DIR}/EyeTuneApp.h"
-    "${APP_DIR}/EyeTunePlatformString.h"
     "${APP_DIR}/EyeTunePopUp.h"
+    "${APP_DIR}/Visualizer.cpp"
+    "${APP_DIR}/Visualizer.h"
     "${APP_DIR}/WASAPICapture.cpp"
     "${APP_DIR}/WASAPICapture.h"
     "${APP_DIR}/WASAPICaptureCommon.h"
@@ -155,6 +174,7 @@ target_compile_definitions(EyeTune PRIVATE
 target_compile_options(EyeTune PRIVATE /bigobj /wd4453 /wd28204 /wd4244)
 target_link_directories(EyeTune PRIVATE "${ANGLE_BIN}")
 target_link_libraries(EyeTune PRIVATE
+    EyeTuneCore
     libprojectM::projectM
     libprojectM::playlist
     libEGL.lib

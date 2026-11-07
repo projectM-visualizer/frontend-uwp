@@ -1,41 +1,80 @@
-﻿//*********************************************************
+//*********************************************************
 // Designed for use in EyeTune Windows Store UWP Application.
 // RobertPancoast77@gmail.com
-// 
+//
 //*********************************************************
 //
-// This file initializes EGL in Windows Store app, using ICoreWindow.
-//
-//
+// The app shell: window, lifecycle, input and settings.
 //
 //*********************************************************
 
 #include "EyeTuneApp.h"
-#include "EyeTunePlatformString.h"
 #include "EyeTunePopUp.h"
-#include <cstdlib>
-#include <locale> 
-#include <codecvt>
 
-using namespace Windows::ApplicationModel::Core;
-using namespace Windows::ApplicationModel::Activation;
-using namespace Windows::UI::Core;
-using namespace Windows::UI::Input;
-using namespace Windows::UI::ViewManagement;
-using namespace Windows::Foundation;
-using namespace Windows::Foundation::Collections;
-using namespace Windows::Graphics::Display;
-using namespace Windows::Storage;
+#include <chrono>
+#include <cstdio>
+#include <fstream>
+#include <ppltasks.h>
+#include <sstream>
+#include <vector>
+
+using namespace concurrency;
 using namespace Microsoft::WRL;
 using namespace Platform;
+using namespace Windows::ApplicationModel;
+using namespace Windows::ApplicationModel::Activation;
+using namespace Windows::ApplicationModel::Core;
+using namespace Windows::Foundation;
+using namespace Windows::Foundation::Collections;
+using namespace Windows::Media::Devices;
+using namespace Windows::Storage;
+using namespace Windows::Storage::Pickers;
+using namespace Windows::System;
+using namespace Windows::UI::Core;
+using namespace Windows::UI::ViewManagement;
 
 using namespace EyeTune;
 
-// Helper to convert a length in device-independent pixels (DIPs) to a length in physical pixels.
-inline float ConvertDipsToPixels(float dips, float dpi)
+namespace
 {
-    static const float dipsPerInch = 96.0f;
-    return floor(dips * dpi / dipsPerInch + 0.5f); // Round to nearest integer.
+    const double StatsIntervalSeconds = 10.0;
+    const std::size_t AudioBufferFrames = 48000; // One second at the usual mix rate.
+    const VirtualKey OemPlus = static_cast<VirtualKey>(187);
+    const VirtualKey OemMinus = static_cast<VirtualKey>(189);
+
+    std::string ToUtf8(const std::wstring& text)
+    {
+        const int size = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        std::string result(size > 0 ? size - 1 : 0, '\0');
+        if (size > 1)
+        {
+            WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, &result[0], size, nullptr, nullptr);
+        }
+        return result;
+    }
+
+    String^ FromUtf8(const std::string& text)
+    {
+        const int size = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+        std::wstring result(size > 0 ? size - 1 : 0, L'\0');
+        if (size > 1)
+        {
+            MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &result[0], size);
+        }
+        return ref new String(result.c_str());
+    }
+
+    double NowSeconds()
+    {
+        using Clock = std::chrono::steady_clock;
+        return std::chrono::duration<double>(Clock::now().time_since_epoch()).count();
+    }
+
+    // Resolves GL entry points through ANGLE for projectM.
+    void* LoadGlProc(const char* name, void* /*userData*/)
+    {
+        return reinterpret_cast<void*>(eglGetProcAddress(name));
+    }
 }
 
 // Implementation of the IFrameworkViewSource interface, necessary to run our app.
@@ -58,27 +97,36 @@ int main(Platform::Array<Platform::String^>^)
 }
 
 App::App() :
+    mStats(StatsIntervalSeconds),
+    mAudioBuffer(std::make_shared<Core::AudioRingBuffer>(AudioBufferFrames)),
+    mExperimentalPresets(false),
     mWindowClosed(false),
     mWindowVisible(true),
-	app(nullptr),
-	playlist(nullptr),
-	experimental_presets(false),
-    mEglDisplay(EGL_NO_DISPLAY),
-    mEglContext(EGL_NO_CONTEXT),
-    mEglSurface(EGL_NO_SURFACE)
+    mReloadPresets(false),
+    mCaptureActive(false),
+    mCaptureStartPending(false),
+    mCaptureRestartRequested(false),
+    mCaptureError(S_OK),
+    mMediaFoundationStarted(false),
+    mDiscontinuityCount(0)
 {
 }
 
 // The first method called when the IFrameworkView is being created.
 void App::Initialize(CoreApplicationView^ applicationView)
 {
-    // Register event handlers for app lifecycle. This example includes Activated, so that we
-    // can make the CoreWindow active and start rendering on the window.
-    applicationView->Activated += 
+    applicationView->Activated +=
         ref new TypedEventHandler<CoreApplicationView^, IActivatedEventArgs^>(this, &App::OnActivated);
-    // Logic for other event handlers could go here.
-    // Information about the Suspending and Resuming event handlers can be found here:
-    // http://msdn.microsoft.com/en-us/library/windows/apps/xaml/hh994930.aspx
+
+    CoreApplication::Suspending +=
+        ref new EventHandler<SuspendingEventArgs^>(this, &App::OnSuspending);
+    CoreApplication::Resuming +=
+        ref new EventHandler<Object^>(this, &App::OnResuming);
+
+    MediaDevice::DefaultAudioRenderDeviceChanged +=
+        ref new TypedEventHandler<Object^, DefaultAudioRenderDeviceChangedEventArgs^>(this, &App::OnDefaultRenderDeviceChanged);
+    MediaDevice::DefaultAudioCaptureDeviceChanged +=
+        ref new TypedEventHandler<Object^, DefaultAudioCaptureDeviceChangedEventArgs^>(this, &App::OnDefaultCaptureDeviceChanged);
 }
 
 // Called when the CoreWindow object is created (or re-created).
@@ -86,134 +134,28 @@ void App::SetWindow(CoreWindow^ window)
 {
     window->VisibilityChanged +=
         ref new TypedEventHandler<CoreWindow^, VisibilityChangedEventArgs^>(this, &App::OnVisibilityChanged);
-
-	window->SizeChanged +=
-		ref new TypedEventHandler<CoreWindow^, WindowSizeChangedEventArgs^>(this, &App::OnSizeChanged);
-	/*
-	window->ResizeCompleted +=
-		ref new TypedEventHandler<CoreWindow^, Object^>(this, &App::OnResizeCompleted);
-*/
-    window->Closed += 
+    window->SizeChanged +=
+        ref new TypedEventHandler<CoreWindow^, WindowSizeChangedEventArgs^>(this, &App::OnSizeChanged);
+    window->Closed +=
         ref new TypedEventHandler<CoreWindow^, CoreWindowEventArgs^>(this, &App::OnWindowClosed);
-
-	// https://docs.microsoft.com/en-us/uwp/api/windows.ui.core.corewindow.keydown
-	window->KeyDown +=
-		ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &App::OnWindowKeyDown);
+    // https://docs.microsoft.com/en-us/uwp/api/windows.ui.core.corewindow.keydown
+    window->KeyDown +=
+        ref new TypedEventHandler<CoreWindow^, KeyEventArgs^>(this, &App::OnWindowKeyDown);
 
     // The CoreWindow has been created, so EGL can be initialized.
-    InitializeEGL(window);
-}
-
-// Implements fullscreen toggle
-void App::togglefullscreen()
-{
-	auto applicationView = ApplicationView::GetForCurrentView();
-
-	if (applicationView->IsFullScreenMode)
-	{
-		applicationView->ExitFullScreenMode();
-	}
-	else
-	{
-		applicationView->TryEnterFullScreenMode();
-	}
-
+    mSurface.Initialize(window);
 }
 
 // Initializes scene resources
-void App::Load(Platform::String^ entryPoint)
+void App::Load(String^ entryPoint)
 {
-    RecreateRenderer();
-}
+    mLocalFolder = ApplicationData::Current->LocalFolder->Path->Data();
+    mLogPath = mLocalFolder + L"\\eyetune.log";
+    std::ofstream(mLogPath, std::ios::trunc).close();
 
-
-void App::loopback() {
-	this->InitializeCapture(nullptr, nullptr);
-}
-
-void App::stoploopback() {
-	this->StopCapture(nullptr, nullptr);
-}
-
-void App::RecreateRenderer()
-{
-	std::string presetdir = "";
-	if (experimental_presets)
-	{
-		presetdir = "\\e\\";
-	}
-	else
-	{
-		presetdir = "\\p\\";
-	}
-	App::RecreateRenderer(presetdir);
-}
-
-// Resolves GL entry points through ANGLE for projectM.
-static void* LoadGlProc(const char* name, void* /*userData*/)
-{
-	return reinterpret_cast<void*>(eglGetProcAddress(name));
-}
-
-void App::DestroyRenderer()
-{
-	if (app)
-	{
-		this->stoploopback();
-
-		// Needs the GL context that created the renderer to still be current.
-		projectm_playlist_destroy(playlist);
-		playlist = nullptr;
-		projectm_destroy(app);
-		app = nullptr;
-	}
-}
-
-void App::RecreateRenderer(std::string presetdir)
-{
-	DestroyRenderer();
-
-	app = projectm_create_with_opengl_load_proc(LoadGlProc, nullptr);
-	if (!app)
-	{
-		Popup("Unable to start the renderer. This device needs OpenGL ES 3.0 support through Direct3D 11.");
-		return;
-	}
-
-	EGLint panelWidth = 0;
-	EGLint panelHeight = 0;
-	eglQuerySurface(mEglDisplay, mEglSurface, EGL_WIDTH, &panelWidth);
-	eglQuerySurface(mEglDisplay, mEglSurface, EGL_HEIGHT, &panelHeight);
-
-	const int meshWidth = 300;
-	const float heightWidthRatio = 1080.0f / 1920.0f;
-	projectm_set_window_size(app, panelWidth, panelHeight);
-	projectm_set_mesh_size(app, meshWidth, static_cast<size_t>(meshWidth * heightWidthRatio));
-	projectm_set_fps(app, 60);
-	projectm_set_soft_cut_duration(app, 3); // seconds
-	projectm_set_preset_duration(app, 30); // seconds
-	projectm_set_beat_sensitivity(app, .9f);
-	projectm_set_aspect_correction(app, true);
-
-	// get path to our app, use CWD for presets
-	std::wstring wpath = Windows::ApplicationModel::Package::Current->InstalledLocation->Path->Data();
-
-	//setup converter
-	using convert_type = std::codecvt_utf8<wchar_t>;
-	std::wstring_convert<convert_type, wchar_t> converter;
-
-	//use converter (.to_bytes: wstr->str, .from_bytes: str->wstr)
-	std::string preset_path = converter.to_bytes(wpath) + presetdir;
-
-	const char* texture_paths[] = { preset_path.c_str() };
-	projectm_set_texture_search_paths(app, texture_paths, 1);
-
-	playlist = projectm_playlist_create(app);
-	projectm_playlist_add_path(playlist, preset_path.c_str(), true, false);
-	projectm_playlist_set_shuffle(playlist, true);
-	projectm_playlist_play_next(playlist, true);
-
-	this->loopback();
+    LoadSettings();
+    CreateRenderer();
+    mCaptureStartPending = true;
 }
 
 // This method is called after the window becomes active.
@@ -221,51 +163,33 @@ void App::Run()
 {
     while (!mWindowClosed)
     {
+        CoreDispatcher^ dispatcher = CoreWindow::GetForCurrentThread()->Dispatcher;
+
         if (mWindowVisible)
         {
-            CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+            dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+            ServiceCapture();
 
-            /*
-			EGLint panelWidth = 0;
-			EGLint panelHeight = 0;
-			eglQuerySurface(mEglDisplay, mEglSurface, EGL_WIDTH, &panelWidth);
-			eglQuerySurface(mEglDisplay, mEglSurface, EGL_HEIGHT, &panelHeight);
-
-            // Logic to update the scene could go here
-
-						glClearColor(0.0, 0.0, 0.0, 0.0);
-						glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            */
-						if (app)
-						{
-							projectm_opengl_render_frame(app);
-						}
-
-            // The call to eglSwapBuffers might not be successful (e.g. due to Device Lost)
-            // If the call fails, then we must reinitialize EGL and the GL resources.
-            if (eglSwapBuffers(mEglDisplay, mEglSurface) != GL_TRUE)
+            if (mReloadPresets.exchange(false))
             {
-
-                // mCubeRenderer.reset(nullptr);
-							 // TODO: anything required here?
-                DestroyRenderer();
-                CleanupEGL();
-
-                InitializeEGL(CoreWindow::GetForCurrentThread());
-                RecreateRenderer();
+                ReloadPresets();
             }
+
+            RenderFrame();
+            ReportStats();
         }
         else
         {
-            CoreWindow::GetForCurrentThread()->Dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessOneAndAllPending);
+            dispatcher->ProcessEvents(CoreProcessEventsOption::ProcessOneAndAllPending);
         }
     }
 
-
-	// Perform teardown
-	DestroyRenderer();
-    CleanupEGL();
-
+    // Perform teardown. projectM needs its GL context, so it goes before the surface.
+    SaveSettings();
+    StopCapture();
+    mVisualizer.Destroy();
+    mSurface.Cleanup();
+    ShutdownCapture();
 }
 
 // Terminate events do not cause Uninitialize to be called. It will be called if your IFrameworkView
@@ -274,11 +198,78 @@ void App::Uninitialize()
 {
 }
 
+void App::CreateRenderer()
+{
+    if (!mVisualizer.Create(LoadGlProc, nullptr))
+    {
+        Log("error: projectM could not start");
+        Popup("Unable to start the renderer. This device needs OpenGL ES 3.0 support through Direct3D 11.");
+        return;
+    }
+
+    ResetSize();
+    ReloadPresets();
+}
+
+void App::ReloadPresets()
+{
+    const std::string installed = ToUtf8(Package::Current->InstalledLocation->Path->Data());
+    const std::string imported = ToUtf8(mLocalFolder) + "\\presets\\";
+    const std::string bundled = installed + (mExperimentalPresets ? "\\e\\" : "\\p\\");
+
+    mVisualizer.ApplySettings(mSettings);
+    mVisualizer.LoadPresets({ bundled, imported }, mSettings);
+
+    Log("presets loaded: " + std::to_string(mVisualizer.PresetCount()));
+}
+
+void App::RenderFrame()
+{
+    mVisualizer.RenderFrame(*mAudioBuffer, mStats);
+    mStats.AddFrame();
+
+    // If the graphics device was lost, EGL and the GL resources must be rebuilt.
+    if (!mSurface.Present())
+    {
+        RecoverFromDeviceLost();
+    }
+}
+
+void App::RecoverFromDeviceLost()
+{
+    Log("graphics device lost, recreating the renderer");
+
+    mVisualizer.Destroy();
+    mSurface.Cleanup();
+    mSurface.Initialize(CoreWindow::GetForCurrentThread());
+    CreateRenderer();
+}
+
+void App::ResetSize()
+{
+    mVisualizer.SetViewport(mSurface.Width(), mSurface.Height());
+}
+
 // Application lifecycle event handler.
 void App::OnActivated(CoreApplicationView^ applicationView, IActivatedEventArgs^ args)
 {
     // Run() won't start until the CoreWindow is activated.
     CoreWindow::GetForCurrentThread()->Activate();
+}
+
+// Audio stops while suspended, so that nothing queues up. ANGLE trims its own
+// graphics memory on suspend, which is a Store certification requirement.
+void App::OnSuspending(Object^ sender, SuspendingEventArgs^ args)
+{
+    Log("suspending");
+    SaveSettings();
+    StopCapture();
+}
+
+void App::OnResuming(Object^ sender, Object^ args)
+{
+    Log("resuming");
+    mCaptureStartPending = true;
 }
 
 // Window event handlers.
@@ -292,332 +283,294 @@ void App::OnWindowClosed(CoreWindow^ sender, CoreWindowEventArgs^ args)
     mWindowClosed = true;
 }
 
-void App::OnWindowKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
+void App::OnSizeChanged(CoreWindow^ sender, WindowSizeChangedEventArgs^ args)
 {
-	// renderer ready?
-	if (app)
-	{
-		// avoid duplicate press
-		if (!args->KeyStatus.WasKeyDown)
-		{
-			// this needs to support gamepad::
-			// https://support.xbox.com/en-US/xbox-one/accessories/xbox-one-wireless-controller
+    ResetSize();
+}
 
-			bool tester;
-			std::string presetname;
-			switch (args->VirtualKey)
-			{
-			case Windows::System::VirtualKey::R:
-			case Windows::System::VirtualKey::Enter:
-			case Windows::System::VirtualKey::GamepadA:
-			//case Windows::System::VirtualKey::GamepadB:
-			case Windows::System::VirtualKey::GamepadX:
-			case Windows::System::VirtualKey::GamepadY:
-				if (projectm_playlist_size(playlist) > 0)
-				{
-					projectm_playlist_set_position(playlist, rand() % projectm_playlist_size(playlist), true);
-				}
-				break;
+void App::OnWindowKeyDown(CoreWindow^ sender, KeyEventArgs^ args)
+{
+    // Ignore key repeat, and input before the renderer is ready.
+    if (!mVisualizer.IsCreated() || args->KeyStatus.WasKeyDown)
+    {
+        return;
+    }
 
-			case Windows::System::VirtualKey::GamepadLeftShoulder:
-			case Windows::System::VirtualKey::GamepadRightShoulder:
-			case Windows::System::VirtualKey::Space:
-			case Windows::System::VirtualKey::Control:
-				// handler for space key
-				projectm_set_preset_locked(app, !projectm_get_preset_locked(app));
-				break;
+    const VirtualKey key = args->VirtualKey;
 
-			case Windows::System::VirtualKey::GamepadDPadRight:
-			case Windows::System::VirtualKey::Right:
-			case Windows::System::VirtualKey::GamepadRightTrigger:
-			case Windows::System::VirtualKey::N:
-				projectm_playlist_play_next(playlist, true);
-				break;
+    if (key == OemPlus)
+    {
+        ChangePresetDuration(Core::Settings::PresetDurationStep);
+        return;
+    }
+    if (key == OemMinus)
+    {
+        ChangePresetDuration(-Core::Settings::PresetDurationStep);
+        return;
+    }
 
+    // https://support.xbox.com/en-US/xbox-one/accessories/xbox-one-wireless-controller
+    switch (key)
+    {
+    case VirtualKey::R:
+    case VirtualKey::Enter:
+    case VirtualKey::GamepadA:
+    case VirtualKey::GamepadX:
+    case VirtualKey::GamepadY:
+        mVisualizer.RandomPreset();
+        break;
 
-			// ctrl-f or alt-f
-			case Windows::System::VirtualKey::F:
-				if(IsCtrlKeyPressed())
-					togglefullscreen();
-				else if(IsAltKeyPressed())
-					togglefullscreen();
-				break;
-/*
-			case Windows::System::VirtualKey::GamepadDPadUp:
-			case Windows::System::VirtualKey::Up:
+    case VirtualKey::GamepadLeftShoulder:
+    case VirtualKey::GamepadRightShoulder:
+    case VirtualKey::Space:
+    case VirtualKey::Control:
+        mVisualizer.TogglePresetLock();
+        break;
 
-			*/
+    case VirtualKey::GamepadDPadRight:
+    case VirtualKey::Right:
+    case VirtualKey::GamepadRightTrigger:
+    case VirtualKey::N:
+        mVisualizer.NextPreset();
+        break;
 
-			// enable experimental presets
-			case Windows::System::VirtualKey::GamepadDPadDown:
-			case Windows::System::VirtualKey::Down:
-				experimental_presets = !experimental_presets;
-				RecreateRenderer();
-				Popup("Experimental Presets : " + experimental_presets.ToString());
+    case VirtualKey::GamepadDPadLeft:
+    case VirtualKey::Left:
+    case VirtualKey::GamepadLeftTrigger:
+    case VirtualKey::P:
+        mVisualizer.PreviousPreset();
+        break;
 
-			case Windows::System::VirtualKey::GamepadDPadLeft:
-			case Windows::System::VirtualKey::Left:
-			case Windows::System::VirtualKey::GamepadLeftTrigger:
-			case Windows::System::VirtualKey::P:
-				projectm_playlist_play_previous(playlist, true);
-				break;
+    case VirtualKey::GamepadDPadDown:
+    case VirtualKey::Down:
+        ToggleExperimentalPresets();
+        break;
 
-			case Windows::System::VirtualKey::GamepadView:
-			case Windows::System::VirtualKey::GamepadMenu:
-			case Windows::System::VirtualKey::F1:
-			case Windows::System::VirtualKey::Escape:
-				tester  = projectm_get_preset_locked(app);
-				presetname = "PresetEyeD == ";
-				if (tester) presetname += "LOCKED: ";
-				if (char* item = projectm_playlist_item(playlist, projectm_playlist_get_position(playlist)))
-				{
-					presetname += item;
-					projectm_playlist_free_string(item);
-				}
-				presetname = presetname +
-					"""\n"
-					"This help menu : F1 or ESC : GamepadMenu or GamepadView""\n"
-					"Lock/Unlock Preset : SPACE or CTRL : GamepadRightShoulder or GamepadLeftShoulder""\n"
-					"Next preset : RIGHT or N : GamepadRightTrigger or GamepadDPadRight""\n"
-					"Previous preset : LEFT or P : GamepadLeftTrigger or GamepadDPadLeft""\n"
-					"Random preset : ENTER or R : GamepadA or GamepadX or GamepadY""\n"
-					"Toggle Fullscreen (PC Only) : CTRL-F ""\n"
-					"Experimental Presets : DOWN : GamepadDPadDown""\n";
+    case VirtualKey::F:
+        if (IsCtrlKeyPressed() || IsAltKeyPressed())
+        {
+            ToggleFullscreen();
+        }
+        break;
 
-					//					"UP \t / GamepadDPadUp \t : Next preset""\n"
-				Popup(Std_Str_To_Managed_Str(presetname));
-				break;
+    case VirtualKey::L:
+        ToggleFavorite();
+        break;
 
-			default:
-				break;
-			}
-		}
-	}
+    case VirtualKey::V:
+        ToggleFavoritesOnly();
+        break;
+
+    case VirtualKey::I:
+        ImportPresets();
+        break;
+
+    case VirtualKey::M:
+        ToggleAudioSource();
+        break;
+
+    case VirtualKey::Add:
+        ChangePresetDuration(Core::Settings::PresetDurationStep);
+        break;
+
+    case VirtualKey::Subtract:
+        ChangePresetDuration(-Core::Settings::PresetDurationStep);
+        break;
+
+    case VirtualKey::GamepadView:
+    case VirtualKey::GamepadMenu:
+    case VirtualKey::F1:
+    case VirtualKey::Escape:
+        ShowHelp();
+        break;
+
+    default:
+        break;
+    }
 }
 
 bool App::IsCtrlKeyPressed()
 {
-	auto ctrlState = CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Control);
-	return (ctrlState & CoreVirtualKeyStates::Down) == CoreVirtualKeyStates::Down;
+    auto state = CoreWindow::GetForCurrentThread()->GetKeyState(VirtualKey::Control);
+    return (state & CoreVirtualKeyStates::Down) == CoreVirtualKeyStates::Down;
 }
 
 // The Alt key is represented by the VirtualKey.Menu value.
-// TODO: investigate why alt modifier does not operate
 bool App::IsAltKeyPressed()
 {
-	auto ctrlState = CoreWindow::GetForCurrentThread()->GetKeyState(Windows::System::VirtualKey::Menu);
-	return (ctrlState & CoreVirtualKeyStates::Down) == CoreVirtualKeyStates::Down;
+    auto state = CoreWindow::GetForCurrentThread()->GetKeyState(VirtualKey::Menu);
+    return (state & CoreVirtualKeyStates::Down) == CoreVirtualKeyStates::Down;
 }
 
-void App::OnSizeChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::WindowSizeChangedEventArgs^ args)
+void App::ToggleFullscreen()
 {
-	ApplicationView^ view = ApplicationView::GetForCurrentView();
-	bool isFullScreenMode = view->IsFullScreen; //->IsFullScreenMode();
-	if (!isFullScreenMode) ResetSize();
+    auto applicationView = ApplicationView::GetForCurrentView();
+
+    if (applicationView->IsFullScreenMode)
+    {
+        applicationView->ExitFullScreenMode();
+    }
+    else
+    {
+        applicationView->TryEnterFullScreenMode();
+    }
 }
 
-void App::OnResizeCompleted(Windows::UI::Core::CoreWindow^ sender, Object^ args)
+void App::ToggleExperimentalPresets()
 {
-	ResetSize();
+    mExperimentalPresets = !mExperimentalPresets;
+    ReloadPresets();
+    Popup("Experimental Presets : " + mExperimentalPresets.ToString());
 }
 
-void App::ResetSize()
+void App::ToggleFavorite()
 {
-	if (app)
-	{
-		EGLint panelWidth = 0;
-		EGLint panelHeight = 0;
-		eglQuerySurface(mEglDisplay, mEglSurface, EGL_WIDTH, &panelWidth);
-		eglQuerySurface(mEglDisplay, mEglSurface, EGL_HEIGHT, &panelHeight);
-
-		projectm_set_window_size(app, panelWidth, panelHeight);
-	}
-}
-
-void App::OnWindowKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
-{
-	if (app)
-	{
-		// app->setPresetLock(!app->isPresetLocked());
-	}
-}
-
-void App::InitializeEGL(CoreWindow^ window)
-{
-    const EGLint configAttributes[] = 
+    const std::string name = Core::FileNameFromPath(mVisualizer.CurrentPresetPath());
+    if (name.empty())
     {
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_ALPHA_SIZE, 8,
-        EGL_DEPTH_SIZE, 8,
-        EGL_STENCIL_SIZE, 8,
-        EGL_NONE
-    };
-
-    const EGLint contextAttributes[] = 
-    { 
-        EGL_CONTEXT_CLIENT_VERSION, 3, 
-        EGL_NONE
-    };
-
-    const EGLint surfaceAttributes[] =
-    {
-        // EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER is part of the same optimization as EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER (see above).
-        // If you have compilation issues with it then please update your Visual Studio templates.
-        EGL_ANGLE_SURFACE_RENDER_TO_BACK_BUFFER, EGL_TRUE,
-        EGL_NONE
-    };
-
-    const EGLint defaultDisplayAttributes[] =
-    {
-        // These are the default display attributes, used to request ANGLE's D3D11 renderer.
-        // eglInitialize will only succeed with these attributes if the hardware supports D3D11 Feature Level 10_0+.
-        EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-
-        // EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER is an optimization that can have large performance benefits on mobile devices.
-        // Its syntax is subject to change, though. Please update your Visual Studio templates if you experience compilation issues with it.
-        EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER, EGL_TRUE,
-        
-        // EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE is an option that enables ANGLE to automatically call 
-        // the IDXGIDevice3::Trim method on behalf of the application when it gets suspended. 
-        // Calling IDXGIDevice3::Trim when an application is suspended is a Windows Store application certification requirement.
-        EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
-        EGL_NONE,
-    };
-    
-    const EGLint fl9_3DisplayAttributes[] =
-    {
-        // These can be used to request ANGLE's D3D11 renderer, with D3D11 Feature Level 9_3.
-        // These attributes are used if the call to eglInitialize fails with the default display attributes.
-        EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-        EGL_PLATFORM_ANGLE_MAX_VERSION_MAJOR_ANGLE, 9,
-        EGL_PLATFORM_ANGLE_MAX_VERSION_MINOR_ANGLE, 3,
-        EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER, EGL_TRUE,
-        EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
-        EGL_NONE,
-    };
-
-    const EGLint warpDisplayAttributes[] =
-    {
-        // These attributes can be used to request D3D11 WARP.
-        // They are used if eglInitialize fails with both the default display attributes and the 9_3 display attributes.
-        EGL_PLATFORM_ANGLE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE,
-        EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE, EGL_PLATFORM_ANGLE_DEVICE_TYPE_WARP_ANGLE,
-        EGL_ANGLE_DISPLAY_ALLOW_RENDER_TO_BACK_BUFFER, EGL_TRUE,
-        EGL_PLATFORM_ANGLE_ENABLE_AUTOMATIC_TRIM_ANGLE, EGL_TRUE,
-        EGL_NONE,
-    };
-    
-    EGLConfig config = NULL;
-
-    // eglGetPlatformDisplayEXT is an alternative to eglGetDisplay. It allows us to pass in display attributes, used to configure D3D11.
-    PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(eglGetProcAddress("eglGetPlatformDisplayEXT"));
-    if (!eglGetPlatformDisplayEXT)
-    {
-        throw Exception::CreateException(E_FAIL, L"Failed to get function eglGetPlatformDisplayEXT");
+        return;
     }
 
-    //
-    // To initialize the display, we make three sets of calls to eglGetPlatformDisplayEXT and eglInitialize, with varying 
-    // parameters passed to eglGetPlatformDisplayEXT:
-    // 1) The first calls uses "defaultDisplayAttributes" as a parameter. This corresponds to D3D11 Feature Level 10_0+.
-    // 2) If eglInitialize fails for step 1 (e.g. because 10_0+ isn't supported by the default GPU), then we try again 
-    //    using "fl9_3DisplayAttributes". This corresponds to D3D11 Feature Level 9_3.
-    // 3) If eglInitialize fails for step 2 (e.g. because 9_3+ isn't supported by the default GPU), then we try again 
-    //    using "warpDisplayAttributes".  This corresponds to D3D11 Feature Level 11_0 on WARP, a D3D11 software rasterizer.
-    //
-    
-    // This tries to initialize EGL to D3D11 Feature Level 10_0+. See above comment for details.
-    mEglDisplay = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, defaultDisplayAttributes);
-    if (mEglDisplay == EGL_NO_DISPLAY)
+    const bool favorite = mSettings.ToggleFavorite(name);
+    SaveSettings();
+    Popup((favorite ? "Added to favorites: " : "Removed from favorites: ") + FromUtf8(name));
+}
+
+void App::ToggleFavoritesOnly()
+{
+    if (!mSettings.favoritesOnly && mSettings.favorites.empty())
     {
-        throw Exception::CreateException(E_FAIL, L"Failed to get EGL display");
+        Popup("No favorites yet. Press L to add the current preset.");
+        return;
     }
 
-    if (eglInitialize(mEglDisplay, NULL, NULL) == EGL_FALSE)
+    mSettings.favoritesOnly = !mSettings.favoritesOnly;
+    SaveSettings();
+    ReloadPresets();
+    Popup(mSettings.favoritesOnly ? "Playing favorites only" : "Playing all presets");
+}
+
+void App::ToggleAudioSource()
+{
+    const bool toMicrophone = mSettings.audioSource == Core::AudioSourceKind::SystemAudio;
+    mSettings.audioSource = toMicrophone ? Core::AudioSourceKind::Microphone : Core::AudioSourceKind::SystemAudio;
+    SaveSettings();
+
+    mCaptureRestartRequested = true;
+    Popup(toMicrophone ? "Audio source: microphone" : "Audio source: system audio");
+}
+
+void App::ChangePresetDuration(int deltaSeconds)
+{
+    mSettings.AdjustPresetDuration(deltaSeconds);
+    mVisualizer.ApplySettings(mSettings);
+    SaveSettings();
+    Popup("Preset duration: " + mSettings.presetDurationSeconds.ToString() + " seconds");
+}
+
+// Copies the chosen files into the app's own folder, which is the only place a
+// sandboxed app can keep reading them from after this picker closes.
+void App::ImportPresets()
+{
+    auto picker = ref new FileOpenPicker();
+    picker->ViewMode = PickerViewMode::List;
+    picker->SuggestedStartLocation = PickerLocationId::DocumentsLibrary;
+    picker->FileTypeFilter->Append(".milk");
+    picker->FileTypeFilter->Append(".prjm");
+
+    create_task(picker->PickMultipleFilesAsync()).then([this](IVectorView<StorageFile^>^ files)
     {
-        // This tries to initialize EGL to D3D11 Feature Level 9_3, if 10_0+ is unavailable (e.g. on some mobile devices).
-        mEglDisplay = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, fl9_3DisplayAttributes);
-        if (mEglDisplay == EGL_NO_DISPLAY)
+        if (files->Size == 0)
         {
-            throw Exception::CreateException(E_FAIL, L"Failed to get EGL display");
+            cancel_current_task();
         }
 
-        if (eglInitialize(mEglDisplay, NULL, NULL) == EGL_FALSE)
+        return create_task(ApplicationData::Current->LocalFolder->CreateFolderAsync("presets", CreationCollisionOption::OpenIfExists))
+            .then([files](StorageFolder^ folder)
         {
-            // This initializes EGL to D3D11 Feature Level 11_0 on WARP, if 9_3+ is unavailable on the default GPU.
-            mEglDisplay = eglGetPlatformDisplayEXT(EGL_PLATFORM_ANGLE_ANGLE, EGL_DEFAULT_DISPLAY, warpDisplayAttributes);
-            if (mEglDisplay == EGL_NO_DISPLAY)
+            std::vector<task<StorageFile^>> copies;
+            for (StorageFile^ file : files)
             {
-                throw Exception::CreateException(E_FAIL, L"Failed to get EGL display");
+                copies.push_back(create_task(file->CopyAsync(folder, file->Name, NameCollisionOption::ReplaceExisting)));
             }
-
-            if (eglInitialize(mEglDisplay, NULL, NULL) == EGL_FALSE)
-            {
-                // If all of the calls to eglInitialize returned EGL_FALSE then an error has occurred.
-                throw Exception::CreateException(E_FAIL, L"Failed to initialize EGL");
-            }
+            return when_all(copies.begin(), copies.end());
+        });
+    }).then([this](task<std::vector<StorageFile^>> result)
+    {
+        try
+        {
+            Log("imported presets: " + std::to_string(result.get().size()));
+            mReloadPresets = true;
         }
-    }
-
-    EGLint numConfigs = 0;
-    if ((eglChooseConfig(mEglDisplay, configAttributes, &config, 1, &numConfigs) == EGL_FALSE) || (numConfigs == 0))
-    {
-        throw Exception::CreateException(E_FAIL, L"Failed to choose first EGLConfig");
-    }
-
-    // Create a PropertySet and initialize with the EGLNativeWindowType.
-    PropertySet^ surfaceCreationProperties = ref new PropertySet();
-    surfaceCreationProperties->Insert(ref new String(EGLNativeWindowTypeProperty), window);
-
-    // You can configure the surface to render at a lower resolution and be scaled up to 
-    // the full window size. The scaling is often free on mobile hardware.
-    //
-    // One way to configure the SwapChainPanel is to specify precisely which resolution it should render at.
-    // Size customRenderSurfaceSize = Size(800, 600);
-    // surfaceCreationProperties->Insert(ref new String(EGLRenderSurfaceSizeProperty), PropertyValue::CreateSize(customRenderSurfaceSize));
-    //
-    // Another way is to tell the SwapChainPanel to render at a certain scale factor compared to its size.
-    // e.g. if the SwapChainPanel is 1920x1280 then setting a factor of 0.5f will make the app render at 960x640
-    // float customResolutionScale = 0.5f;
-    // surfaceCreationProperties->Insert(ref new String(EGLRenderResolutionScaleProperty), PropertyValue::CreateSingle(customResolutionScale));
-
-    mEglSurface = eglCreateWindowSurface(mEglDisplay, config, reinterpret_cast<IInspectable*>(surfaceCreationProperties), surfaceAttributes);
-    if (mEglSurface == EGL_NO_SURFACE)
-    {
-        throw Exception::CreateException(E_FAIL, L"Failed to create EGL fullscreen surface");
-    }
-
-    mEglContext = eglCreateContext(mEglDisplay, config, EGL_NO_CONTEXT, contextAttributes);
-    if (mEglContext == EGL_NO_CONTEXT)
-    {
-        throw Exception::CreateException(E_FAIL, L"Failed to create EGL context");
-    }
-
-    if (eglMakeCurrent(mEglDisplay, mEglSurface, mEglSurface, mEglContext) == EGL_FALSE)
-    {
-        throw Exception::CreateException(E_FAIL, L"Failed to make fullscreen EGLSurface current");
-    }
+        catch (const task_canceled&)
+        {
+            // The picker was closed without choosing anything.
+        }
+        catch (Exception^ e)
+        {
+            Log("preset import failed: " + ToUtf8(e->Message->Data()));
+        }
+    });
 }
 
-void App::CleanupEGL()
+void App::ShowHelp()
 {
-    if (mEglDisplay != EGL_NO_DISPLAY && mEglSurface != EGL_NO_SURFACE)
+    std::string text = mVisualizer.IsPresetLocked() ? "PresetEyeD == LOCKED: " : "PresetEyeD == ";
+    text += Core::FileNameFromPath(mVisualizer.CurrentPresetPath());
+    text +=
+        "\n"
+        "This help menu : F1 or ESC : GamepadMenu or GamepadView\n"
+        "Lock/Unlock Preset : SPACE or CTRL : GamepadRightShoulder or GamepadLeftShoulder\n"
+        "Next preset : RIGHT or N : GamepadRightTrigger or GamepadDPadRight\n"
+        "Previous preset : LEFT or P : GamepadLeftTrigger or GamepadDPadLeft\n"
+        "Random preset : ENTER or R : GamepadA or GamepadX or GamepadY\n"
+        "Toggle Fullscreen (PC Only) : CTRL-F\n"
+        "Experimental Presets : DOWN : GamepadDPadDown\n"
+        "Add or remove favorite : L\n"
+        "Favorites only : V\n"
+        "Import presets : I\n"
+        "Preset duration : + or -\n"
+        "System audio or microphone : M\n";
+
+    Popup(FromUtf8(text));
+}
+
+void App::LoadSettings()
+{
+    std::ifstream file(mLocalFolder + L"\\settings.txt");
+    std::ostringstream text;
+    text << file.rdbuf();
+    mSettings = Core::Settings::Parse(text.str());
+}
+
+void App::SaveSettings()
+{
+    std::ofstream file(mLocalFolder + L"\\settings.txt", std::ios::trunc);
+    file << mSettings.Serialize();
+}
+
+void App::Log(const std::string& line)
+{
+    std::ofstream file(mLogPath, std::ios::app);
+    file << line << '\n';
+}
+
+// Writes measurements to the local folder, since release builds have no console.
+void App::ReportStats()
+{
+    Core::FrameReport report;
+    if (!mStats.Poll(NowSeconds(), report))
     {
-        eglDestroySurface(mEglDisplay, mEglSurface);
-        mEglSurface = EGL_NO_SURFACE;
+        return;
     }
 
-    if (mEglDisplay != EGL_NO_DISPLAY && mEglContext != EGL_NO_CONTEXT)
-    {
-        eglDestroyContext(mEglDisplay, mEglContext);
-        mEglContext = EGL_NO_CONTEXT;
-    }
-
-    if (mEglDisplay != EGL_NO_DISPLAY)
-    {
-        eglTerminate(mEglDisplay);
-        mEglDisplay = EGL_NO_DISPLAY;
-    }
+    char line[160];
+    std::snprintf(line, sizeof(line), "fps=%.1f audioFrames=%llu peak=%d dropped=%llu memoryMB=%llu presets=%zu",
+        report.framesPerSecond,
+        static_cast<unsigned long long>(report.audioFrames),
+        report.audioPeak,
+        static_cast<unsigned long long>(mAudioBuffer->DroppedFrames()),
+        static_cast<unsigned long long>(MemoryManager::AppMemoryUsage / (1024 * 1024)),
+        mVisualizer.PresetCount());
+    Log(line);
 }

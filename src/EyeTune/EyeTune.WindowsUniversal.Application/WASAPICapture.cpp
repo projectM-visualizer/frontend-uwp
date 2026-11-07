@@ -35,7 +35,6 @@ using namespace EyeTune;
 
 #define BITS_PER_BYTE 8
 
-#define MILLISECONDS_TO_VISUALIZE 20
 //
 //  WASAPICapture()
 //
@@ -52,7 +51,6 @@ WASAPICapture::WASAPICapture() :
     m_ContentStream( nullptr ),
     m_OutputStream( nullptr ),
     //m_WAVDataWriter( nullptr ),
-    m_PlotData( nullptr ),
     m_fWriting( false )
 {
     // Create events for sample ready or user stop
@@ -109,7 +107,6 @@ WASAPICapture::~WASAPICapture()
     m_OutputStream = nullptr;
     //m_WAVDataWriter = nullptr;
 
-    m_PlotData = nullptr;
 
     DeleteCriticalSection( &m_CritSec );
 }
@@ -120,21 +117,17 @@ WASAPICapture::~WASAPICapture()
 //  Activates the default audio capture on a asynchronous callback thread.  This needs
 //  to be called from the main UI thread.
 //
-HRESULT WASAPICapture::InitializeAudioDeviceAsync(projectm_handle app)
+HRESULT WASAPICapture::InitializeAudioDeviceAsync(std::shared_ptr<Core::IAudioSink> sink)
 {
-	m_app = app;
+    m_Sink = std::move(sink);
     ComPtr<IActivateAudioInterfaceAsyncOperation> asyncOp;
     HRESULT hr = S_OK;
 
-    /*
-    // Get a string representing the Default Audio Capture Device
-    m_DeviceIdString = MediaDevice::GetDefaultAudioCaptureId( Windows::Media::Devices::AudioDeviceRole::Default );
-
-    */
-
-
-    // Get a string representing the Default Audio Device Renderer
-    m_DeviceIdString = MediaDevice::GetDefaultAudioRenderId(Windows::Media::Devices::AudioDeviceRole::Default);
+    // The default output device gives loopback of system audio. The default
+    // capture device gives the microphone.
+    m_DeviceIdString = m_DeviceProps.UseMicrophone
+        ? MediaDevice::GetDefaultAudioCaptureId( AudioDeviceRole::Default )
+        : MediaDevice::GetDefaultAudioRenderId( AudioDeviceRole::Default );
 
 
     // This call must be made on the main UI thread.  Async operation will call back to 
@@ -260,7 +253,7 @@ HRESULT WASAPICapture::ActivateCompleted( IActivateAudioInterfaceAsyncOperation 
         // note that AUDCLNT_STREAMFLAGS_LOOPBACK and AUDCLNT_STREAMFLAGS_EVENTCALLBACK
         // imcompatible...
         hr = m_AudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED,
-          AUDCLNT_STREAMFLAGS_LOOPBACK | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
+          (m_DeviceProps.UseMicrophone ? 0 : AUDCLNT_STREAMFLAGS_LOOPBACK) | AUDCLNT_STREAMFLAGS_EVENTCALLBACK,
             200000,
             0,
             m_MixFormat,
@@ -304,13 +297,6 @@ HRESULT WASAPICapture::ActivateCompleted( IActivateAudioInterfaceAsyncOperation 
 
     // Sets the event handle that the system signals when an audio buffer is ready to be processed by the client
     hr = m_AudioClient->SetEventHandle( m_SampleReadyEvent );
-    if (FAILED( hr ))
-    {
-        goto exit;
-    }
-
-    // Create the visualization array
-    hr = InitializeScopeData();
     if (FAILED( hr ))
     {
         goto exit;
@@ -476,38 +462,6 @@ HRESULT WASAPICapture::FixWAVHeader()
 }
 
 //
-//  InitializeScopeData()
-//
-//  Setup data structures for sample visualizations
-//
-HRESULT WASAPICapture::InitializeScopeData()
-{
-    HRESULT hr = S_OK;
-
-    m_cPlotDataFilled = 0;
-    m_cPlotDataMax = (MILLISECONDS_TO_VISUALIZE * m_MixFormat->nSamplesPerSec) / 1000;
-
-    m_PlotData = ref new Platform::Array<int, 1>( m_cPlotDataMax + 1 );
-    if (nullptr == m_PlotData)
-    {
-        return E_OUTOFMEMORY;
-    }
-
-    // Only Support 16 bit Audio for now
-    if (m_MixFormat->wBitsPerSample == 16)
-    {
-        m_PlotData[ m_cPlotDataMax ] = -32768;  // INT16_MAX
-    }
-    else
-    {
-        m_PlotData = nullptr;
-        hr = S_FALSE;
-    }
-
-    return hr;
-}
-
-//
 //  StartCaptureAsync()
 //
 //  Starts asynchronous capture on a separate thread via MF Work Item
@@ -587,21 +541,7 @@ HRESULT WASAPICapture::OnStopCapture( IMFAsyncResult* pResult )
     m_AudioClient->Stop();
     SAFE_RELEASE( m_SampleReadyAsyncResult );
 
-    // If this is set, it means we writing from the memory buffer to the actual file asynchronously
-    // Since a second call to StoreAsync() can cause an exception, don't queue this now, but rather
-    // let the async operation completion handle the call.
-    if (!m_fWriting)
-    {
-       /* m_DeviceStateChanged->SetState( DeviceState::DeviceStateFlushing, S_OK, true );
-
-        concurrency::task<unsigned int>( m_WAVDataWriter->StoreAsync()).then(
-            [this]( unsigned int BytesWritten )
-        {
-            FinishCaptureAsync();
-        });*/
-
-		FinishCaptureAsync();
-    }
+    m_DeviceStateChanged->SetState( DeviceState::DeviceStateStopped, S_OK, true );
 
     return S_OK;
 }
@@ -744,14 +684,11 @@ HRESULT WASAPICapture::OnAudioSampleRequested( Platform::Boolean IsSilence )
             memset( Data, 0, FramesAvailable * m_MixFormat->nBlockAlign );
         }
 
-        // Store data in array
-        auto dataByte = ref new Platform::Array<BYTE, 1>( Data, cbBytesToCapture );
+        // Copy the samples out first. The buffer is invalid once it has been released.
+        WriteToSink( Data, FramesAvailable );
 
         // Release buffer back
         m_AudioCaptureClient->ReleaseBuffer( FramesAvailable );
-
-        // Update plotter data
-        ProcessScopeData( Data, cbBytesToCapture );
 
     }
 
@@ -762,78 +699,17 @@ exit:
 }
 
 //
-//  ProcessScopeData()
+//  WriteToSink()
 //
-//  Copies sample data to the buffer array and fires the event
+//  Passes captured samples on. This runs on the real-time capture thread, so it
+//  only copies. Only 16-bit audio is supported, which ActivateCompleted requests.
 //
-HRESULT WASAPICapture::ProcessScopeData( BYTE* pData, DWORD cbBytes )
+void WASAPICapture::WriteToSink( BYTE* pData, UINT32 frames )
 {
-    HRESULT hr = S_OK;
-
-    // We don't have a valid pointer array, so return.  This could be the case if we aren't
-    // dealing with 16-bit audio
-    if (m_PlotData == nullptr)
+    if (m_Sink && m_MixFormat->wBitsPerSample == 16)
     {
-        return S_FALSE;
+        m_Sink->Write( reinterpret_cast<const INT16*>(pData), frames, m_MixFormat->nChannels );
     }
-
-    DWORD dwNumPoints = cbBytes / m_MixFormat->nChannels / (m_MixFormat->wBitsPerSample / 8);
-
-    // Read the 16-bit samples from channel 0
-    pi16 = (INT16*)pData;
-
-
-	// if (dwNumPoints > 256) dwNumPoints = 256;
-	projectm_pcm_add_int16(m_app, pi16, dwNumPoints, m_MixFormat->nChannels == 1 ? PROJECTM_MONO : PROJECTM_STEREO);
-
-	return hr;
-
-    for ( DWORD i = 0; m_cPlotDataFilled < m_cPlotDataMax && i < dwNumPoints; i++ )
-    {
-        m_PlotData[ m_cPlotDataFilled ] = *pi16;
-        pi16 += m_MixFormat->nChannels;
-
-        m_cPlotDataFilled++;
-    }
-
-    // Send off the event and get ready for the next set of samples
-    if (m_cPlotDataFilled == m_cPlotDataMax)
-    {
-        ComPtr<IUnknown> spUnknown;
-        ComPtr<CAsyncState> spState = Make<CAsyncState>( m_PlotData, m_cPlotDataMax + 1 );
-
-        hr = spState.As( &spUnknown );
-        if (SUCCEEDED( hr ))
-        {
-            MFPutWorkItem2( MFASYNC_CALLBACK_QUEUE_MULTITHREADED, 0, &m_xSendScopeData, spUnknown.Get() );
-        }
-
-        m_cPlotDataFilled = 0;
-    }
-
-    return hr;
-}
-
-//
-//  OnSendScopeData()
-//
-//  Callback method to stop capture
-//
-HRESULT WASAPICapture::OnSendScopeData( IMFAsyncResult* pResult )
-{
-    HRESULT hr = S_OK;
-    CAsyncState *pState = nullptr;
-    
-    hr = pResult->GetState( reinterpret_cast<IUnknown**>(&pState) );
-    //if (SUCCEEDED( hr ))
-    //{
-    //  // TODO: verify
-    //    PlotDataReadyEvent::SendEvent( reinterpret_cast<Platform::Object^>(this), pState->m_Data , pState->m_Size );
-    //}
-
-    SAFE_RELEASE( pState );
-
-    return S_OK;
 }
 
 //

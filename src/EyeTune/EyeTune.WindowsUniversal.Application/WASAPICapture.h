@@ -44,7 +44,9 @@
 #include "WASAPICaptureCommon.h"
 #include "WASAPICaptureDeviceState.h"
 
-#include <projectM-4/projectM.h>
+#include "AudioRingBuffer.h"
+
+#include <memory>
 
 using namespace Microsoft::WRL;
 using namespace Windows::Media::Devices;
@@ -62,6 +64,7 @@ namespace EyeTune
   struct CAPTUREDEVICEPROPS
   {
     Platform::Boolean       IsLowLatency;
+    bool                    UseMicrophone;
   };
 
   // Primary WASAPI Capture Class
@@ -72,7 +75,7 @@ namespace EyeTune
     WASAPICapture();
 
     HRESULT SetProperties(CAPTUREDEVICEPROPS props);
-    HRESULT InitializeAudioDeviceAsync(projectm_handle app);
+    HRESULT InitializeAudioDeviceAsync(std::shared_ptr<Core::IAudioSink> sink);
     HRESULT StartCaptureAsync();
     HRESULT StopCaptureAsync();
     HRESULT FinishCaptureAsync();
@@ -83,7 +86,6 @@ namespace EyeTune
     METHODASYNCCALLBACK(WASAPICapture, StopCapture, OnStopCapture);
     METHODASYNCCALLBACK(WASAPICapture, SampleReady, OnSampleReady);
     METHODASYNCCALLBACK(WASAPICapture, FinishCapture, OnFinishCapture);
-    METHODASYNCCALLBACK(WASAPICapture, SendScopeData, OnSendScopeData);
 
     // IActivateAudioInterfaceCompletionHandler
     STDMETHOD(ActivateCompleted)(IActivateAudioInterfaceAsyncOperation *operation);
@@ -95,13 +97,11 @@ namespace EyeTune
     HRESULT OnStopCapture(IMFAsyncResult* pResult);
     HRESULT OnFinishCapture(IMFAsyncResult* pResult);
     HRESULT OnSampleReady(IMFAsyncResult* pResult);
-    HRESULT OnSendScopeData(IMFAsyncResult* pResult);
 
     HRESULT CreateWAVFile();
     HRESULT FixWAVHeader();
     HRESULT OnAudioSampleRequested(Platform::Boolean IsSilence = false);
-    HRESULT InitializeScopeData();
-    HRESULT ProcessScopeData(BYTE* pData, DWORD cbBytes);
+    void WriteToSink(BYTE* pData, UINT32 frames);
 
   private:
     Platform::String^   m_DeviceIdString;
@@ -130,11 +130,7 @@ namespace EyeTune
 
     DeviceStateChangedEvent^       m_DeviceStateChanged;
 
-    Platform::Array<int, 1>^    m_PlotData;
-    UINT32                      m_cPlotDataMax;
-    UINT32                      m_cPlotDataFilled;
-	short                      *pi16;
-	projectm_handle m_app;
+    std::shared_ptr<Core::IAudioSink> m_Sink;
     CAPTUREDEVICEPROPS          m_DeviceProps;
   };
 }

@@ -1,35 +1,27 @@
-﻿//*********************************************************
+//*********************************************************
 // Designed for use in EyeTune Windows Store UWP Application.
 // RobertPancoast77@gmail.com
-// 
+//
 //*********************************************************
 //
-// This file initializes EGL in Windows Store app, using ICoreWindow.
-//
-//
+// The app shell: window, lifecycle, input and settings. Rendering lives in
+// AngleSurface and Visualizer, and audio capture in WASAPICapture.
 //
 //*********************************************************
 
 #pragma once
 
-#include <string>
-
-#include <memory>
-#include <wrl.h>
-
-// OpenGL ES includes
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-
-// EGL includes
-#include <EGL/egl.h>
-#include <EGL/eglext.h>
-#include <EGL/eglplatform.h>
-
-// ANGLE include for Windows Store
-#include <angle_windowsstore.h>
+#include "AngleSurface.h"
+#include "AudioRingBuffer.h"
+#include "FrameStats.h"
+#include "Settings.h"
+#include "Visualizer.h"
 #include "WASAPICapture.h"
-#include <projectM-4/playlist.h>
+
+#include <atomic>
+#include <memory>
+#include <string>
+#include <wrl.h>
 
 namespace EyeTune
 {
@@ -41,61 +33,80 @@ namespace EyeTune
         // IFrameworkView Methods.
         virtual void Initialize(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView);
         virtual void SetWindow(Windows::UI::Core::CoreWindow^ window);
-		void togglefullscreen();
         virtual void Load(Platform::String^ entryPoint);
         virtual void Run();
         virtual void Uninitialize();
 
     private:
-		void loopback();
-		void stoploopback();
-		void RecreateRenderer(std::string presetdir);
-		void RecreateRenderer();
-		void DestroyRenderer();
-		projectm_handle app;
-		projectm_playlist_handle playlist;
+        // Renderer
+        void CreateRenderer();
+        void ReloadPresets();
+        void ResetSize();
+        void RecoverFromDeviceLost();
+        void RenderFrame();
 
         // Application lifecycle event handlers.
         void OnActivated(Windows::ApplicationModel::Core::CoreApplicationView^ applicationView, Windows::ApplicationModel::Activation::IActivatedEventArgs^ args);
+        void OnSuspending(Platform::Object^ sender, Windows::ApplicationModel::SuspendingEventArgs^ args);
+        void OnResuming(Platform::Object^ sender, Platform::Object^ args);
 
         // Window event handlers.
         void OnVisibilityChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::VisibilityChangedEventArgs^ args);
         void OnWindowClosed(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::CoreWindowEventArgs^ args);
-		void OnWindowKeyDown(Windows::UI::Core::CoreWindow ^ sender, Windows::UI::Core::KeyEventArgs ^ args);
-		bool IsCtrlKeyPressed();
-		bool IsAltKeyPressed();
-		void OnSizeChanged(Windows::UI::Core::CoreWindow ^ sender, Windows::UI::Core::WindowSizeChangedEventArgs ^ args);
-		void OnResizeCompleted(Windows::UI::Core::CoreWindow ^ sender, Object ^ args);
-		void ResetSize();
-		void OnWindowKeyUp(Windows::UI::Core::CoreWindow ^ sender, Windows::UI::Core::KeyEventArgs ^ args);
+        void OnWindowKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args);
+        void OnSizeChanged(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::WindowSizeChangedEventArgs^ args);
 
-        void InitializeEGL(Windows::UI::Core::CoreWindow^ window);
-        void CleanupEGL();
-		bool experimental_presets;
+        // Commands
+        void ToggleFullscreen();
+        void ToggleExperimentalPresets();
+        void ToggleFavorite();
+        void ToggleFavoritesOnly();
+        void ToggleAudioSource();
+        void ChangePresetDuration(int deltaSeconds);
+        void ImportPresets();
+        void ShowHelp();
+        bool IsCtrlKeyPressed();
+        bool IsAltKeyPressed();
+
+        // Audio, defined in WASAPICaptureScenario.cpp
+        void OnDeviceStateChange(Platform::Object^ sender, DeviceStateChangedEventArgs^ e);
+        void OnDefaultRenderDeviceChanged(Platform::Object^ sender, Windows::Media::Devices::DefaultAudioRenderDeviceChangedEventArgs^ args);
+        void OnDefaultCaptureDeviceChanged(Platform::Object^ sender, Windows::Media::Devices::DefaultAudioCaptureDeviceChangedEventArgs^ args);
+        void InitializeCapture();
+        void StopCapture();
+        void ShutdownCapture();
+        void ServiceCapture();
+
+        // Settings and diagnostics
+        void LoadSettings();
+        void SaveSettings();
+        void Log(const std::string& line);
+        void ReportStats();
+
+        AngleSurface mSurface;
+        Visualizer mVisualizer;
+        Core::Settings mSettings;
+        Core::FrameStats mStats;
+        std::shared_ptr<Core::AudioRingBuffer> mAudioBuffer;
+
+        std::wstring mLocalFolder;
+        std::wstring mLogPath;
+        bool mExperimentalPresets;
         bool mWindowClosed;
         bool mWindowVisible;
-        
-        EGLDisplay mEglDisplay;
-        EGLContext mEglContext;
-        EGLSurface mEglSurface;
+        std::atomic<bool> mReloadPresets;
 
+        // Capture runs on its own threads. It reports back through these flags and
+        // the main loop acts on them, because restarts must happen on the UI thread.
+        std::atomic<bool> mCaptureActive;
+        std::atomic<bool> mCaptureStartPending;
+        std::atomic<bool> mCaptureRestartRequested;
+        std::atomic<long> mCaptureError;
 
-		void OnDeviceStateChange(Object ^ sender, DeviceStateChangedEventArgs ^ e);
-		void InitializeCapture(Object^ sender, Object^ e);
-		void StopCapture(Object^ sender, Object^ e);
-
-	private:
-		Windows::UI::Core::CoreDispatcher^              m_CoreDispatcher;
-		Windows::UI::Xaml::Shapes::Polyline^            m_Oscilloscope;
-
-		Windows::Foundation::EventRegistrationToken     m_deviceStateChangeToken;
-		Windows::Foundation::EventRegistrationToken     m_plotDataReadyToken;
-
-		int                         m_DiscontinuityCount;
-		Platform::Boolean           m_IsMFLoaded;
-		Platform::Boolean           m_IsLowLatency;
-		DeviceStateChangedEvent^    m_StateChangedEvent;
-		ComPtr<WASAPICapture>       m_spCapture;
+        bool mMediaFoundationStarted;
+        int mDiscontinuityCount;
+        Windows::Foundation::EventRegistrationToken mDeviceStateChangeToken;
+        DeviceStateChangedEvent^ mStateChangedEvent;
+        Microsoft::WRL::ComPtr<WASAPICapture> mCapture;
     };
-
 }
