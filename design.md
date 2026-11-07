@@ -388,7 +388,7 @@ Preserved from the original manifest and unchanged by modernization:
 |---|---|
 | Identity | `13183Mancoast.projectM-UWP` |
 | Publisher | `CN=272C27CF-652F-4A95-9E3B-7A86D492CC37` |
-| Display name | projectM-UWP |
+| Display name | projectM, a name reserved on the Store account. It's shown in the title bar, Start menu and Store tile |
 | Publisher name | Mancoast Research Institute |
 | Version | 0.9.7.0 |
 | Target family | `Windows.Universal` |

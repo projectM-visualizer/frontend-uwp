@@ -9,6 +9,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $expectedName = '13183Mancoast.projectM-UWP'
+$expectedDisplayName = 'projectM'
 $requiredFiles = @(
     'AppxManifest.xml',
     'projectM-UWP.WindowsUniversal.Application.exe',
@@ -54,6 +55,10 @@ foreach ($expected in @(@{ Pattern = '*_x64*.appx'; Arch = 'x64' }, @{ Pattern =
             $identity = $manifest.Package.Identity
             if ($identity.Name -ne $expectedName) {
                 $failures += "$($appx.Name) has identity $($identity.Name)"
+            }
+            $displayName = $manifest.Package.Properties.DisplayName
+            if ($displayName -ne $expectedDisplayName) {
+                $failures += "$($appx.Name) has display name $displayName"
             }
             if ($identity.ProcessorArchitecture -ne $expected.Arch) {
                 $failures += "$($appx.Name) has architecture $($identity.ProcessorArchitecture)"

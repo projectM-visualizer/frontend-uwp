@@ -3,7 +3,7 @@
   <Identity Name="13183Mancoast.projectM-UWP" Publisher="CN=272C27CF-652F-4A95-9E3B-7A86D492CC37" Version="0.9.7.0" />
   <mp:PhoneIdentity PhoneProductId="85ec5d3f-489e-4021-841f-2e4ca03adc1e" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
-    <DisplayName>projectM-UWP</DisplayName>
+    <DisplayName>projectM</DisplayName>
     <PublisherDisplayName>Mancoast Research Institute</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -15,7 +15,7 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="projectM_UWP_WindowsUniversal_Application.App">
-      <uap:VisualElements DisplayName="projectM-UWP" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="projectM-UWP" BackgroundColor="#464646">
+      <uap:VisualElements DisplayName="projectM" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="projectM-UWP" BackgroundColor="#464646">
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
         <uap:DefaultTile/>
       </uap:VisualElements>
