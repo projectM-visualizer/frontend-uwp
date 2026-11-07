@@ -20,7 +20,7 @@ https://www.microsoft.com/p/projectm/9ndcvh0vcwjn
 Clone with submodules, since projectM and its dependencies live in `src/projectm`:
 
 ```
-git clone --recurse-submodules https://github.com/projectM-visualizer/frontend-uwp.git
+git clone --recurse-submodules https://github.com/Coastrnaut/frontend-uwp.git
 ```
 
 For an existing clone, run `git submodule update --init --recursive`.
