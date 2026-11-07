@@ -1,0 +1,5 @@
+/src/.vs
+*.user
+/src/EyeTune/EyeTune.WindowsUniversal.Application/x64
+/src/EyeTune/projectM.WindowsUniversal.SharedLibrary/x64
+/src/packages
