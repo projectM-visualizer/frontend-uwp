@@ -42,7 +42,7 @@ You can download EyeTune from the Windows Store: https://www.microsoft.com/p/pro
 | Xbox | Not tested. A console release existed historically, but compatibility isn't claimed |
 | ARM | Not supported |
 
-See [platform feasibility](docs/platform-feasibility.md) for details.
+See [platform feasibility](design.md#platform-feasibility) for details.
 
 ## Building
 
@@ -86,9 +86,9 @@ cmake --preset x64 -DEYETUNE_PACKAGE_CERTIFICATE=C:/path/to/key.pfx -DEYETUNE_PA
 
 ### Updating projectM
 
-The submodule tracks upstream [projectM](https://github.com/projectM-visualizer/projectm), pinned to a tested commit. It's on the development branch because the current release doesn't have what the UWP port needs ([decision 6](docs/decisions/0006-track-upstream-master.md)).
+The submodule tracks upstream [projectM](https://github.com/projectM-visualizer/projectm), pinned to a tested commit. It's on the development branch because the current release doesn't have what the UWP port needs ([decision 6](design.md#6-track-projectms-development-branch)).
 
-Move `src/projectm` to the new commit, update its submodules, then configure again. projectM's own CMake build provides the source list, generated headers and shaders. Then run the manual checks in [testing](docs/testing.md), on x86 as well as x64.
+Move `src/projectm` to the new commit, update its submodules, then configure again. projectM's own CMake build provides the source list, generated headers and shaders. Then run the manual checks in [testing](design.md#testing), on x86 as well as x64.
 
 ## Testing
 
@@ -98,7 +98,7 @@ cmake --build build/tests --config Release
 ctest --test-dir build/tests -C Release --output-on-failure
 ```
 
-GitHub Actions runs these tests, builds every configuration and validates the bundle on each push and pull request. CI doesn't launch the app, so see [testing](docs/testing.md) for manual checks and how to run an unsigned build.
+GitHub Actions runs these tests, builds every configuration and validates the bundle on each push and pull request. CI doesn't launch the app, so see [testing](design.md#testing) for manual checks and how to run an unsigned build.
 
 The app writes frame rate, audio level and errors to `eyetune.log` in its `LocalState` folder.
 
@@ -113,19 +113,18 @@ The app writes frame rate, audio level and errors to `eyetune.log` in its `Local
 | `src/projectm` | projectM, as an unmodified submodule |
 | `tests` | Unit tests |
 | `scripts` | Bundle creation and validation |
-| `docs` | Architecture, decisions, history, licensing and testing |
-| `specs` | Modernization specifications and their status |
+| `design.md` | Architecture, decisions, testing, licensing, history and status |
 
 ## Known limitations
 
 - Xbox, Store submission and signing are untested.
-- The bundled presets' redistribution rights need auditing. See [licensing](docs/licensing.md).
+- The bundled presets' redistribution rights need auditing. See [licensing](design.md#licensing).
 - There's no on-screen preset browser or search, because the app has no XAML interface.
 - In favorites-only mode, newly imported presets stay hidden until you add them as favorites or turn the mode off.
 - Microphone capture and x86 keyboard controls haven't been confirmed yet.
 - projectM is pinned to an unreleased commit, with a local fix for an x86 crash until upstream takes it.
 
-See [specs](specs/README.md) for what's done and what's open.
+See [design](design.md#status) for what's done and what's open.
 
 ## Contributing
 
@@ -133,4 +132,4 @@ Contributions are welcome. Please feel free to fork, implement and create a pull
 
 ## License
 
-EyeTune is licensed under the [LGPL 2.1](LICENSE.md). See [licensing](docs/licensing.md) for third-party components.
+EyeTune is licensed under the [LGPL 2.1](LICENSE.md). See [licensing](design.md#licensing) for third-party components.
