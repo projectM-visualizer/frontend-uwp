@@ -17,6 +17,8 @@ https://www.microsoft.com/p/projectm/9ndcvh0vcwjn
 
 ## Building
 
+You need CMake 3.21 or newer and Visual Studio with the UWP workload and the v142 toolset.
+
 Clone with submodules, since projectM and its dependencies live in `src/projectm`:
 
 ```
@@ -27,27 +29,35 @@ For an existing clone, run `git submodule update --init --recursive`.
 
 Clone to a short path such as `C:\GIT`. Some preset filenames are long enough that checkout fails in a deeply nested folder.
 
-Open `src/EyeTune.WindowsUniversal.Application.sln` in Visual Studio with the v142 toolset and UWP workload installed, restore the NuGet packages, then build for x64 or x86. Packages are signed with the certificate named in the app's `.vcxproj`, which isn't stored in this repository. Add your own, or restore and build unsigned from a Developer Command Prompt:
+Configure and build with a preset:
 
 ```
-MSBuild.exe src/EyeTune.WindowsUniversal.Application.sln -t:restore -p:RestorePackagesConfig=true
-MSBuild.exe src/EyeTune.WindowsUniversal.Application.sln -p:Configuration=Release -p:Platform=x64 -p:AppxPackageSigningEnabled=false
+cmake --preset x64
+cmake --build --preset x64-release
+```
+
+The presets are `x64` and `x86` to configure, and `x64-debug`, `x64-release`, `x86-debug` and `x86-release` to build. To use the Visual Studio IDE, open `build/x64/EyeTune.sln` after configuring. Change project settings in `CMakeLists.txt`, because that solution is regenerated.
+
+Packages are written to `build/<preset>/AppPackages`. To combine both architectures into one bundle, build `x64-release` and `x86-release`, then run:
+
+```
+powershell -File scripts/make-bundle.ps1
+```
+
+### Signing
+
+Builds are unsigned by default. To sign, pass your certificate when configuring:
+
+```
+cmake --preset x64 -DEYETUNE_PACKAGE_CERTIFICATE=C:/path/to/key.pfx -DEYETUNE_PACKAGE_THUMBPRINT=<thumbprint>
 ```
 
 ### Updating projectM
 
-The Visual Studio projects compile projectM's sources directly, without its CMake build:
+Move `src/projectm` to the new commit, update its submodules, then configure again. projectM's own CMake build provides the source list, generated headers and shaders.
 
-1. Move `src/projectm` to the new commit and update its submodules.
-2. Run `src/EyeTune/projectM.Generated/regenerate.sh` in Git Bash to refresh the generated headers and shaders.
-3. Update `src/EyeTune/EyeTune.Shared/EyeTune.Shared.vcxitems` if source files were added or removed.
+UWP-specific replacements live in `src/EyeTune/EyeTune.Shared`, and `CMakeLists.txt` applies them to projectM's targets without changing the submodule. Presets are kept in `src/EyeTune/presets`, because projectM no longer includes any.
 
-Presets are kept in `src/EyeTune/presets`, because projectM no longer includes any.
+## Contributing
 
-## Call for help
-
-The project files are still maintained by hand. Since the core team currently has no resources and lacks the required experience with writing UWP apps, we're in need of volunteers to help prepare this app for a future update. Here's a short To-Do list:
-
-- Remove the outdated VS solution files and [generate the project with CMake](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-windows-10-universal-applications), which will make it easier to keep it up to date with any new VS releases.
-
-If you're interested in taking one or more of the above tasks, please feel free to fork, implement and create a pull request. If there are any questions, the projectM team is available on [the projectM Discord server](https://discord.gg/mMrxAqaa3W). Ideally, join the [development channel](https://discord.com/channels/737206408482914387/737600388944887819).
+Contributions are welcome. Please feel free to fork, implement and create a pull request. If there are any questions, the projectM team is available on [the projectM Discord server](https://discord.gg/mMrxAqaa3W). Ideally, join the [development channel](https://discord.com/channels/737206408482914387/737600388944887819).

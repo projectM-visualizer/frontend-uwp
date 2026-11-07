@@ -1,18 +1,6 @@
+/build
 /src/.vs
+/.vs
 *.user
 *.pfx
 /src/packages
-
-# Build output
-/src/x64
-/src/Win32
-/src/Debug
-/src/Release
-/src/AppPackages
-/src/build_logs
-/src/EyeTune/*/x64
-/src/EyeTune/*/Win32
-/src/EyeTune/*/Debug
-/src/EyeTune/*/Release
-/src/EyeTune/*/BundleArtifacts
-/src/EyeTune/*/Generated Files
