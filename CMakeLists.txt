@@ -68,6 +68,29 @@ set_source_files_properties(
     PROPERTIES HEADER_FILE_ONLY ON
 )
 target_sources(Renderer PRIVATE "${UWP_DIR}/DynamicLibrary_uwp.cpp")
+
+# GLProbe.cpp declares its glGetStringi pointer without the GL calling convention.
+# On 32-bit x86 GL functions are __stdcall, so each call corrupts the stack, and
+# Release builds crash at startup. Compile a corrected copy until projectM fixes
+# this. Once it has, the text below won't match and the original file is used.
+set(PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/projectm/src/libprojectM/Renderer/Platform")
+set(GLPROBE_BROKEN "using GetStringiFn = const GLubyte* (*) (GLenum, GLuint);")
+file(READ "${PLATFORM_DIR}/GLProbe.cpp" GLPROBE_SOURCE)
+string(FIND "${GLPROBE_SOURCE}" "${GLPROBE_BROKEN}" GLPROBE_MATCH)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${PLATFORM_DIR}/GLProbe.cpp")
+if(GLPROBE_MATCH GREATER_EQUAL 0)
+    string(REPLACE "${GLPROBE_BROKEN}"
+        "using GetStringiFn = const GLubyte*(GLAD_API_PTR*)(GLenum, GLuint);"
+        GLPROBE_SOURCE "${GLPROBE_SOURCE}")
+    file(WRITE "${CMAKE_BINARY_DIR}/uwp/GLProbe.cpp" "${GLPROBE_SOURCE}")
+    set_source_files_properties("${PLATFORM_DIR}/GLProbe.cpp"
+        TARGET_DIRECTORY Renderer
+        PROPERTIES HEADER_FILE_ONLY ON
+    )
+    target_sources(Renderer PRIVATE "${CMAKE_BINARY_DIR}/uwp/GLProbe.cpp")
+    target_include_directories(Renderer PRIVATE "${PLATFORM_DIR}")
+endif()
+
 target_compile_options(Renderer PRIVATE "/FI${UWP_DIR}/uwp_compat.h")
 
 # --- EyeTune app ----------------------------------------------------------------
