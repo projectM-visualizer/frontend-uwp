@@ -107,6 +107,8 @@ App::App() :
     mCaptureStartPending(false),
     mCaptureRestartRequested(false),
     mCaptureError(S_OK),
+    mCaptureRetries(0),
+    mCaptureRetryAt(0),
     mMediaFoundationStarted(false),
     mDiscontinuityCount(0)
 {
@@ -533,6 +535,11 @@ void App::ShowHelp()
         "System audio or microphone : M\n";
 
     Popup(FromUtf8(text));
+}
+
+void App::ReportAudioUnavailable()
+{
+    Popup("No audio device is available, so the visuals won't react to sound. EyeTune will try again when the default audio device changes.");
 }
 
 void App::LoadSettings()

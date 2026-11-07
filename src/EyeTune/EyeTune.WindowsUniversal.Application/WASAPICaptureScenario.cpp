@@ -23,6 +23,13 @@ using namespace Windows::Media::Devices;
 
 using namespace EyeTune;
 
+namespace
+{
+    // A device can be briefly missing, for example while a remote session connects.
+    const int MaxCaptureRetries = 5;
+    const unsigned long long CaptureRetryDelayMs = 3000;
+}
+
 // Event callback from WASAPI capture for changes in device state.
 void App::OnDeviceStateChange(Object^ sender, DeviceStateChangedEventArgs^ e)
 {
@@ -30,6 +37,11 @@ void App::OnDeviceStateChange(Object^ sender, DeviceStateChangedEventArgs^ e)
     {
     case DeviceState::DeviceStateInitialized:
         mCapture->StartCaptureAsync();
+        break;
+
+    case DeviceState::DeviceStateCapturing:
+        mCaptureRetries = 0;
+        Log("audio capture started");
         break;
 
     case DeviceState::DeviceStateDiscontinuity:
@@ -86,6 +98,7 @@ void App::ServiceCapture()
     if (mCaptureRestartRequested.exchange(false))
     {
         Log("restarting audio capture");
+        mCaptureRetries = 0;
         StopCapture();
         mCaptureStartPending = true;
     }
@@ -97,11 +110,20 @@ void App::ServiceCapture()
         swprintf_s(code, L"0x%08x", static_cast<unsigned int>(error));
         Log("audio capture failed: " + std::string(code, code + 10));
 
-        // The device went away, so try again with whatever is the default now.
-        if (error == AUDCLNT_E_DEVICE_INVALIDATED || error == AUDCLNT_E_RESOURCES_INVALIDATED)
+        if (++mCaptureRetries <= MaxCaptureRetries)
         {
-            mCaptureStartPending = true;
+            mCaptureRetryAt = GetTickCount64() + CaptureRetryDelayMs;
         }
+        else
+        {
+            ReportAudioUnavailable();
+        }
+    }
+
+    if (mCaptureRetryAt != 0 && GetTickCount64() >= mCaptureRetryAt)
+    {
+        mCaptureRetryAt = 0;
+        mCaptureStartPending = true;
     }
 
     if (!mCaptureActive && mCaptureStartPending.exchange(false))

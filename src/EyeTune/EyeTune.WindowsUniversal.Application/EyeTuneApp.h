@@ -76,6 +76,7 @@ namespace EyeTune
         void StopCapture();
         void ShutdownCapture();
         void ServiceCapture();
+        void ReportAudioUnavailable();
 
         // Settings and diagnostics
         void LoadSettings();
@@ -102,6 +103,8 @@ namespace EyeTune
         std::atomic<bool> mCaptureStartPending;
         std::atomic<bool> mCaptureRestartRequested;
         std::atomic<long> mCaptureError;
+        std::atomic<int> mCaptureRetries;
+        unsigned long long mCaptureRetryAt;
 
         bool mMediaFoundationStarted;
         int mDiscontinuityCount;
