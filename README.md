@@ -25,9 +25,12 @@ git clone --recurse-submodules https://github.com/Coastrnaut/frontend-uwp.git
 
 For an existing clone, run `git submodule update --init --recursive`.
 
-Open `src/EyeTune.WindowsUniversal.Application.sln` in Visual Studio with the v142 toolset and UWP workload installed, restore the NuGet packages, then build for x64 or x86. Packages are signed with the certificate named in the app's `.vcxproj`, which isn't stored in this repository. Add your own, or build unsigned with:
+Clone to a short path such as `C:\GIT`. Some preset filenames are long enough that checkout fails in a deeply nested folder.
+
+Open `src/EyeTune.WindowsUniversal.Application.sln` in Visual Studio with the v142 toolset and UWP workload installed, restore the NuGet packages, then build for x64 or x86. Packages are signed with the certificate named in the app's `.vcxproj`, which isn't stored in this repository. Add your own, or restore and build unsigned from a Developer Command Prompt:
 
 ```
+MSBuild.exe src/EyeTune.WindowsUniversal.Application.sln -t:restore -p:RestorePackagesConfig=true
 MSBuild.exe src/EyeTune.WindowsUniversal.Application.sln -p:Configuration=Release -p:Platform=x64 -p:AppxPackageSigningEnabled=false
 ```
 

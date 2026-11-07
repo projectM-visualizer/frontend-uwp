@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SOLUTION: src/EyeTune.WindowsUniversal.Application.sln
+
+jobs:
+  build:
+    name: ${{ matrix.configuration }} ${{ matrix.platform }}
+    # Includes the v142 toolset with UWP support, which the projects are pinned to.
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+        platform: [x64, x86]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: microsoft/setup-msbuild@v3
+
+      - name: Restore NuGet packages
+        run: msbuild ${{ env.SOLUTION }} -t:restore -p:RestorePackagesConfig=true
+
+      - name: Build
+        run: >
+          msbuild ${{ env.SOLUTION }} -m
+          -p:Configuration=${{ matrix.configuration }}
+          -p:Platform=${{ matrix.platform }}
+          -p:AppxPackageSigningEnabled=false
+          -p:AppxBundle=Never
+
+  bundle:
+    name: Release bundle
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: microsoft/setup-msbuild@v3
+
+      - name: Restore NuGet packages
+        run: msbuild ${{ env.SOLUTION }} -t:restore -p:RestorePackagesConfig=true
+
+      # The Store certificate is not in this repository, so this bundle is unsigned.
+      - name: Build x86 and x64 bundle
+        run: >
+          msbuild ${{ env.SOLUTION }} -m
+          -p:Configuration=Release
+          -p:Platform=x64
+          -p:AppxPackageSigningEnabled=false
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: EyeTune-unsigned-bundle
+          path: src/AppPackages/**/*.appxbundle
+          if-no-files-found: error
+          retention-days: 14
