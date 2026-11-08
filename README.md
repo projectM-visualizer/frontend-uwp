@@ -103,6 +103,8 @@ To release:
 
 4. In Partner Center, start a submission for projectM-visualizer and upload `build/bundle/Release/projectM-UWP_<version>_x86_x64.appxbundle` under Packages.
 
+Store screenshots are in `store/screenshots`: one fullscreen 2752×1966 PNG of each preset that loads, and one of the help overlay. `presets.txt` lists which preset each shows, and `contact-sheet.jpg` shows them all at once. Partner Center takes up to 10 per device family.
+
 Upload the bundle unsigned. The Store signs it. Release builds don't produce symbol files, so the Store's crash reports won't have function names.
 
 ### Signing
@@ -142,6 +144,7 @@ The app writes frame rate, audio level and errors to `projectM-UWP.log` in its `
 | `src/projectm` | projectM, as an unmodified submodule |
 | `tests` | Unit tests |
 | `scripts` | Bundle creation and validation |
+| `store` | Store screenshots |
 | `design.md` | Architecture, decisions, testing, licensing, history and status |
 
 ## Known limitations
