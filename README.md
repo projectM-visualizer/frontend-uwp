@@ -1,11 +1,13 @@
 projectM-UWP: Universal Windows Platform Frontend App
 ====================================================
 
-projectM-UWP is the Universal Windows Platform (UWP) application for projectM, published in the Microsoft Store. It brings the projectM/Milkdrop music visualizer to Windows through OpenGL ES, using ANGLE on Direct3D 11.
+projectM-UWP is the Universal Windows Platform (UWP) application for projectM, published in the Microsoft Store as projectM-visualizer. It brings the projectM/Milkdrop music visualizer to Windows through OpenGL ES, using ANGLE on Direct3D 11.
 
 If you're looking for a classic desktop application, you might prefer [the SDL2-based frontend](https://github.com/projectM-visualizer/frontend-sdl).
 
-You can download projectM-UWP from the Windows Store: https://www.microsoft.com/p/projectm/9ndcvh0vcwjn
+Get projectM-visualizer from the Microsoft Store: https://apps.microsoft.com/detail/9MVZC1D9Z7PX
+
+The older EyeTune listing (`9NDCVH0VCWJN`) is a separate product on another developer account. It doesn't get these updates.
 
 ## Features
 
@@ -76,9 +78,36 @@ powershell -File scripts/make-bundle.ps1
 powershell -File scripts/validate-bundle.ps1
 ```
 
+### Publishing to the Store
+
+The manifest carries the identity Partner Center assigned to [projectM-visualizer](https://apps.microsoft.com/detail/9MVZC1D9Z7PX):
+
+| Manifest field | Value |
+|---|---|
+| `Package/Identity/Name` | `coaster.projectM-visualizer` |
+| `Package/Identity/Publisher` | `CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5` |
+| `Package/Properties/PublisherDisplayName` | coaster |
+| `Package/Properties/DisplayName` | projectM-visualizer |
+
+The package family name is `coaster.projectM-visualizer_cybm9vgwr20yc`, and the Store ID is `9MVZC1D9Z7PX`. `validate-bundle.ps1` fails if the identity, publisher or display name differs from these.
+
+To release:
+
+1. Raise `Version` in `Package.appxmanifest` above the last submitted version. The fourth number must stay 0.
+2. Build `x64-release` and `x86-release`, then run `make-bundle.ps1` and `validate-bundle.ps1`.
+3. Optionally, run the Windows App Certification Kit from an administrator PowerShell:
+
+   ```
+   & "${env:ProgramFiles(x86)}\Windows Kits\10\App Certification Kit\appcert.exe" test -appxpackagepath build\bundle\Release\projectM-UWP_<version>_x86_x64.appxbundle -reportoutputpath build\wack.xml
+   ```
+
+4. In Partner Center, start a submission for projectM-visualizer and upload `build/bundle/Release/projectM-UWP_<version>_x86_x64.appxbundle` under Packages.
+
+Upload the bundle unsigned. The Store signs it. Release builds don't produce symbol files, so the Store's crash reports won't have function names.
+
 ### Signing
 
-Builds are unsigned by default. To sign, pass your certificate when configuring. This path hasn't been tested with a real certificate yet.
+Signing is only needed to install a package outside the Store. Builds are unsigned by default. To sign, pass your certificate when configuring. This path hasn't been tested with a real certificate yet.
 
 ```
 cmake --preset x64 -DPROJECTM_UWP_PACKAGE_CERTIFICATE=C:/path/to/key.pfx -DPROJECTM_UWP_PACKAGE_THUMBPRINT=<thumbprint>
@@ -117,12 +146,12 @@ The app writes frame rate, audio level and errors to `projectM-UWP.log` in its `
 
 ## Known limitations
 
-- Xbox, Store submission and signing are untested.
+- Xbox and signing are untested, and no build has gone through Store certification yet.
 - The bundled presets' redistribution rights need auditing. See [licensing](design.md#licensing).
 - There's no on-screen preset browser or search, because the app has no XAML interface.
 - In favorites-only mode, newly imported presets stay hidden until you add them as favorites or turn the mode off.
 - Microphone capture and x86 keyboard controls haven't been confirmed yet.
-- projectM is pinned to an unreleased commit, with a local fix for an x86 crash until upstream takes it.
+- projectM is pinned to an unreleased commit, with a local fix for an x86 crash until upstream merges [projectM-visualizer/projectm#1059](https://github.com/projectM-visualizer/projectm/pull/1059).
 
 See [design](design.md#status) for what's done and what's open.
 

@@ -361,7 +361,11 @@ Imported presets belong to the user and stay on their device.
 
 ### Branding
 
-The app ships as a new Store product, projectM-visualizer (Store ID `9MVZC1D9Z7PX`), on the coaster developer account, with the same display name. Changing the identity needs the owner's agreement.
+The app ships as a new Store product, [projectM-visualizer](https://apps.microsoft.com/detail/9MVZC1D9Z7PX) (Store ID `9MVZC1D9Z7PX`), on the coaster developer account. Its display name is projectM-visualizer, because the Store only accepts a name reserved for the product. Changing the identity needs the owner's agreement.
+
+The original EyeTune listing, `9NDCVH0VCWJN` on the Mancoast account, keeps identity `13183Mancoast.EyeTune` and its last release, 0.9.1.0, which included ARM. Partner Center doesn't let an identity change, so this app can't update that listing, and its users aren't moved over.
+
+`Package.StoreAssociation.xml` points to the new product. It lists only projectM-visualizer as a reserved name, and no published packages yet.
 
 ## History
 
@@ -390,6 +394,8 @@ Preserved from the original manifest, except for the identity and publisher, whi
 | Publisher | `CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5` |
 | Display name | projectM-visualizer, the name reserved for the Store app. It's shown in the title bar, Start menu and Store tile |
 | Publisher name | coaster |
+| Package family name | `coaster.projectM-visualizer_cybm9vgwr20yc` |
+| Store ID | `9MVZC1D9Z7PX` |
 | Version | 0.9.7.0 |
 | Target family | `Windows.Universal` |
 | Capabilities | `internetClient`, `microphone` |
@@ -453,7 +459,7 @@ See [licensing](#licensing).
 | UWP audio restrictions | Loopback works on Windows under Developer Mode. Store review is untested | Submit a build through the Store |
 | Xbox audio | Unknown | Test on a console in Developer Mode |
 | OpenGL on Xbox | Unknown. ANGLE targets Direct3D 11, which Xbox apps have | Test on a console |
-| projectM bugs on x86 | One found and patched in `CMakeLists.txt` | Send the fix upstream |
+| projectM bugs on x86 | One found and patched in `CMakeLists.txt` | Fix sent upstream in [projectM-visualizer/projectm#1059](https://github.com/projectM-visualizer/projectm/pull/1059) |
 | 2019 ANGLE package | No problem seen, but no maintained successor is in use | Replace if a preset or driver fails |
 | Tracking an unreleased projectM commit | Accepted, see [decision 6](#6-track-projectms-development-branch) | Update deliberately and retest |
 | Preset redistribution | Unresolved | Audit before a public release |
@@ -462,7 +468,7 @@ See [licensing](#licensing).
 ### Open questions
 
 - Did the original Xbox release use loopback, and did it capture other apps' audio? The code suggests so, but nothing in the repository shows what happened on a console.
-- Does the Store still accept updates to this listing, given that Microsoft has archived its UWP documentation?
+- Will Store certification accept a new UWP C++/CX app, given that Microsoft has archived its UWP documentation?
 - Who holds rights to the 29 presets?
 
 ## Specifications
@@ -577,5 +583,5 @@ Repeatable automated validation.
 | Unit tests run in CI | Done | Same workflow |
 | Package architecture and identity are validated | Done | Same workflow |
 | Developer Mode testing is documented | Done | [Testing](#testing) |
-| Signing is verified | Not done | Needs the Store certificate |
+| Signing is verified | Not done | Store uploads don't need it, because the Store signs them. Sideload signing is untested |
 | Licenses and redistribution are audited | Not done | Inventory exists, and the preset decision is open |
