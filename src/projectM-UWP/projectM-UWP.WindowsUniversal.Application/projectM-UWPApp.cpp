@@ -232,6 +232,10 @@ void App::RenderFrame()
 {
     ResetSize();
     mVisualizer.RenderFrame(*mAudioBuffer, mStats);
+    if (mVisualizer.TakePresetSwitched())
+    {
+        Log("preset: " + Core::FileNameFromPath(mVisualizer.CurrentPresetPath()));
+    }
     mStats.AddFrame();
 
     // If the graphics device was lost, EGL and the GL resources must be rebuilt.

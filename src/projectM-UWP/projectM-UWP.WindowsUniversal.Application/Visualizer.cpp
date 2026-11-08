@@ -39,6 +39,7 @@ bool Visualizer::Create(projectm_load_proc loadProc, void* userData)
     projectm_set_fps(m_projectm, TargetFps);
     projectm_set_beat_sensitivity(m_projectm, BeatSensitivity);
     projectm_set_aspect_correction(m_projectm, true);
+    projectm_playlist_set_preset_switched_event_callback(m_playlist, &Visualizer::OnPresetSwitched, this);
 
     m_audio.resize(static_cast<std::size_t>(projectm_pcm_get_max_samples()) * 2);
     return true;
@@ -182,6 +183,18 @@ bool Visualizer::IsPresetLocked() const
 std::size_t Visualizer::PresetCount() const
 {
     return m_playlist != nullptr ? projectm_playlist_size(m_playlist) : 0;
+}
+
+void Visualizer::OnPresetSwitched(bool, unsigned int, void* userData)
+{
+    static_cast<Visualizer*>(userData)->m_presetSwitched = true;
+}
+
+bool Visualizer::TakePresetSwitched()
+{
+    const bool switched = m_presetSwitched;
+    m_presetSwitched = false;
+    return switched;
 }
 
 std::string Visualizer::CurrentPresetPath() const

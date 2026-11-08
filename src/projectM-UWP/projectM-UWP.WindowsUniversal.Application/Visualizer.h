@@ -52,10 +52,17 @@ public:
     std::size_t PresetCount() const;
     std::string CurrentPresetPath() const; // Empty when the playlist is empty.
 
+    // True once after each preset switch. Presets that fail to load are skipped
+    // and dropped from the playlist without a switch.
+    bool TakePresetSwitched();
+
 private:
     projectm_handle m_projectm = nullptr;
     projectm_playlist_handle m_playlist = nullptr;
     std::vector<std::int16_t> m_audio;
+    bool m_presetSwitched = false;
+
+    static void OnPresetSwitched(bool isHardCut, unsigned int index, void* userData);
 };
 
 } // namespace projectM_UWP
