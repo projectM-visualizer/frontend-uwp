@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <StoreAssociation xmlns="http://schemas.microsoft.com/appx/2010/storeassociation">
-  <Publisher>CN=272C27CF-652F-4A95-9E3B-7A86D492CC37</Publisher>
-  <PublisherDisplayName>Mancoast Research Institute</PublisherDisplayName>
+  <Publisher>CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5</Publisher>
+  <PublisherDisplayName>coaster</PublisherDisplayName>
   <DeveloperAccountType>MSA</DeveloperAccountType>
   <GeneratePackageHash>http://www.w3.org/2001/04/xmlenc#sha256</GeneratePackageHash>
   <SupportedLocales>
@@ -361,32 +361,11 @@
     <Language Code="zu-za" InMinimumRequirementSet="true" />
   </SupportedLocales>
   <ProductReservedInfo>
-    <MainPackageIdentityName>13183Mancoast.projectM-visualizer</MainPackageIdentityName>
+    <MainPackageIdentityName>coaster.projectM-visualizer</MainPackageIdentityName>
     <ReservedNames>
-      <ReservedName>EyeTune</ReservedName>
-      <ReservedName>Milkdrop</ReservedName>
-      <ReservedName>projectM</ReservedName>
-      <ReservedName>Visualized</ReservedName>
+      <ReservedName>projectM-visualizer</ReservedName>
     </ReservedNames>
   </ProductReservedInfo>
   <AccountPackageIdentityNames />
-  <PackageInfoList LandingUrl="https://developer.microsoft.com/dashboard/Application?appId=9NDCVH0VCWJN">
-    <BundleInfo>
-      <PackageInfo>
-        <OsMinVersion>0.0.0.0</OsMinVersion>
-        <PackageArchitecture>X86</PackageArchitecture>
-        <PackageMaxArchitectureVersion>0.9.1.0</PackageMaxArchitectureVersion>
-      </PackageInfo>
-      <PackageInfo>
-        <OsMinVersion>0.0.0.0</OsMinVersion>
-        <PackageArchitecture>X64</PackageArchitecture>
-        <PackageMaxArchitectureVersion>0.9.1.0</PackageMaxArchitectureVersion>
-      </PackageInfo>
-      <PackageInfo>
-        <OsMinVersion>0.0.0.0</OsMinVersion>
-        <PackageArchitecture>Arm</PackageArchitecture>
-        <PackageMaxArchitectureVersion>0.9.1.0</PackageMaxArchitectureVersion>
-      </PackageInfo>
-    </BundleInfo>
-  </PackageInfoList>
+  <PackageInfoList LandingUrl="https://developer.microsoft.com/dashboard/Application?appId=9MVZC1D9Z7PX" />
 </StoreAssociation>

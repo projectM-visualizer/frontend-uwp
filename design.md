@@ -361,7 +361,7 @@ Imported presets belong to the user and stay on their device.
 
 ### Branding
 
-The app ships as a new Store product with identity `13183Mancoast.projectM-visualizer` and display name projectM. The publisher is unchanged. Changing them needs the owner's agreement.
+The app ships as a new Store product, projectM-visualizer (Store ID `9MVZC1D9Z7PX`), on the coaster developer account, with display name projectM. Changing the identity needs the owner's agreement.
 
 ## History
 
@@ -382,14 +382,14 @@ projectM-UWP was a single native C++/CX app. There was no XAML and no C#. **Veri
 
 ### 3. UWP project and identity
 
-Preserved from the original manifest, except for the identity, which belongs to a new Store app:
+Preserved from the original manifest, except for the identity and publisher, which belong to the new Store app:
 
 | Field | Value |
 |---|---|
-| Identity | `13183Mancoast.projectM-visualizer`, from the new Store app. The original EyeTune app kept `13183Mancoast.EyeTune` |
-| Publisher | `CN=272C27CF-652F-4A95-9E3B-7A86D492CC37` |
+| Identity | `coaster.projectM-visualizer`, from the new Store app. The original EyeTune app kept `13183Mancoast.EyeTune` |
+| Publisher | `CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5` |
 | Display name | projectM, a name reserved on the Store account. It's shown in the title bar, Start menu and Store tile |
-| Publisher name | Mancoast Research Institute |
+| Publisher name | coaster |
 | Version | 0.9.7.0 |
 | Target family | `Windows.Universal` |
 | Capabilities | `internetClient`, `microphone` |
@@ -493,7 +493,7 @@ A reproducible native build.
 |---|---|---|
 | A clean checkout builds from documented steps | Done | Clean clone built all configurations |
 | Dependencies are pinned | Done | Submodule commits and a hashed ANGLE download |
-| The UWP project and identity are preserved | Changed | Publisher kept; identity moved to a new Store app at the owner's request |
+| The UWP project and identity are preserved | Changed | Identity and publisher moved to a new Store app at the owner's request |
 
 ### 003 projectM API migration
 

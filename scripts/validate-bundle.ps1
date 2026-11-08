@@ -8,7 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$expectedName = '13183Mancoast.projectM-visualizer'
+$expectedName = 'coaster.projectM-visualizer'
+$expectedPublisher = 'CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5'
 $expectedDisplayName = 'projectM'
 $requiredFiles = @(
     'AppxManifest.xml',
@@ -55,6 +56,9 @@ foreach ($expected in @(@{ Pattern = '*_x64*.appx'; Arch = 'x64' }, @{ Pattern =
             $identity = $manifest.Package.Identity
             if ($identity.Name -ne $expectedName) {
                 $failures += "$($appx.Name) has identity $($identity.Name)"
+            }
+            if ($identity.Publisher -ne $expectedPublisher) {
+                $failures += "$($appx.Name) has publisher $($identity.Publisher)"
             }
             $displayName = $manifest.Package.Properties.DisplayName
             if ($displayName -ne $expectedDisplayName) {
