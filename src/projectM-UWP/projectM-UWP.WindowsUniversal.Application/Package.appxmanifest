@@ -3,7 +3,7 @@
   <Identity Name="coaster.projectM-visualizer" Publisher="CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5" Version="0.9.7.0" />
   <mp:PhoneIdentity PhoneProductId="85ec5d3f-489e-4021-841f-2e4ca03adc1e" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
-    <DisplayName>projectM</DisplayName>
+    <DisplayName>projectM-visualizer</DisplayName>
     <PublisherDisplayName>coaster</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -15,7 +15,7 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="projectM_UWP_WindowsUniversal_Application.App">
-      <uap:VisualElements DisplayName="projectM" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="projectM-UWP" BackgroundColor="#464646">
+      <uap:VisualElements DisplayName="projectM-visualizer" Square150x150Logo="Assets\Logo.png" Square44x44Logo="Assets\SmallLogo.png" Description="projectM-UWP" BackgroundColor="#464646">
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
         <uap:DefaultTile/>
       </uap:VisualElements>

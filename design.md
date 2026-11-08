@@ -361,7 +361,7 @@ Imported presets belong to the user and stay on their device.
 
 ### Branding
 
-The app ships as a new Store product, projectM-visualizer (Store ID `9MVZC1D9Z7PX`), on the coaster developer account, with display name projectM. Changing the identity needs the owner's agreement.
+The app ships as a new Store product, projectM-visualizer (Store ID `9MVZC1D9Z7PX`), on the coaster developer account, with the same display name. Changing the identity needs the owner's agreement.
 
 ## History
 
@@ -388,7 +388,7 @@ Preserved from the original manifest, except for the identity and publisher, whi
 |---|---|
 | Identity | `coaster.projectM-visualizer`, from the new Store app. The original EyeTune app kept `13183Mancoast.EyeTune` |
 | Publisher | `CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5` |
-| Display name | projectM, a name reserved on the Store account. It's shown in the title bar, Start menu and Store tile |
+| Display name | projectM-visualizer, the name reserved for the Store app. It's shown in the title bar, Start menu and Store tile |
 | Publisher name | coaster |
 | Version | 0.9.7.0 |
 | Target family | `Windows.Universal` |

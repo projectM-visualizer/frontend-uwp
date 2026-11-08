@@ -10,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 
 $expectedName = 'coaster.projectM-visualizer'
 $expectedPublisher = 'CN=D9ED5A20-CFEF-4A74-9651-3E6DDAF76CC5'
-$expectedDisplayName = 'projectM'
+$expectedDisplayName = 'projectM-visualizer'
 $requiredFiles = @(
     'AppxManifest.xml',
     'projectM-UWP.WindowsUniversal.Application.exe',
