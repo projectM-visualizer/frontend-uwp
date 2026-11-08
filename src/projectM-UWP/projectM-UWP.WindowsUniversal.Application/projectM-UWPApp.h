@@ -108,6 +108,8 @@ namespace projectM_UWP
 
         bool mMediaFoundationStarted;
         int mDiscontinuityCount;
+        int mViewportWidth = 0;
+        int mViewportHeight = 0;
         Windows::Foundation::EventRegistrationToken mDeviceStateChangeToken;
         DeviceStateChangedEvent^ mStateChangedEvent;
         Microsoft::WRL::ComPtr<WASAPICapture> mCapture;

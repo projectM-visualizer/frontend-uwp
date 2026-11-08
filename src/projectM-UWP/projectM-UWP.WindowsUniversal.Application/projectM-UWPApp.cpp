@@ -209,6 +209,9 @@ void App::CreateRenderer()
         return;
     }
 
+    // A new projectM instance starts at its default size.
+    mViewportWidth = 0;
+    mViewportHeight = 0;
     ResetSize();
     ReloadPresets();
 }
@@ -227,6 +230,7 @@ void App::ReloadPresets()
 
 void App::RenderFrame()
 {
+    ResetSize();
     mVisualizer.RenderFrame(*mAudioBuffer, mStats);
     mStats.AddFrame();
 
@@ -247,9 +251,18 @@ void App::RecoverFromDeviceLost()
     CreateRenderer();
 }
 
+// ANGLE resizes its swap chain on the next present, not when the window's
+// SizeChanged event fires, so the surface size is also checked every frame.
 void App::ResetSize()
 {
-    mVisualizer.SetViewport(mSurface.Width(), mSurface.Height());
+    const int width = mSurface.Width();
+    const int height = mSurface.Height();
+    if (width != mViewportWidth || height != mViewportHeight)
+    {
+        mViewportWidth = width;
+        mViewportHeight = height;
+        mVisualizer.SetViewport(width, height);
+    }
 }
 
 // Application lifecycle event handler.
