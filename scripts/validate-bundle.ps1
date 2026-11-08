@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$expectedName = '13183Mancoast.projectM-UWP'
+$expectedName = '13183Mancoast.projectM-visualizer'
 $expectedDisplayName = 'projectM'
 $requiredFiles = @(
     'AppxManifest.xml',
