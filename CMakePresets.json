@@ -1,0 +1,35 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "toolset": { "value": "v142", "strategy": "set" },
+      "cacheVariables": {
+        "CMAKE_SYSTEM_NAME": "WindowsStore",
+        "CMAKE_SYSTEM_VERSION": "10.0",
+        "CMAKE_VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION": "10.0.10240.0"
+      }
+    },
+    {
+      "name": "x64",
+      "displayName": "UWP x64",
+      "inherits": "base",
+      "architecture": { "value": "x64", "strategy": "set" }
+    },
+    {
+      "name": "x86",
+      "displayName": "UWP x86",
+      "inherits": "base",
+      "architecture": { "value": "Win32", "strategy": "set" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "x64-debug", "configurePreset": "x64", "configuration": "Debug", "targets": "projectM-UWP" },
+    { "name": "x64-release", "configurePreset": "x64", "configuration": "Release", "targets": "projectM-UWP" },
+    { "name": "x86-debug", "configurePreset": "x86", "configuration": "Debug", "targets": "projectM-UWP" },
+    { "name": "x86-release", "configurePreset": "x86", "configuration": "Release", "targets": "projectM-UWP" }
+  ]
+}

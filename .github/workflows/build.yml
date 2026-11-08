@@ -1,0 +1,77 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build tests
+        run: |
+          cmake -S tests -B build/tests
+          cmake --build build/tests --config Release -- /m
+
+      - name: Run tests
+        run: ctest --test-dir build/tests -C Release --output-on-failure
+
+  build:
+    name: ${{ matrix.configuration }} ${{ matrix.architecture }}
+    # Includes the v142 toolset with UWP support, which the presets select.
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [debug, release]
+        architecture: [x64, x86]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.architecture }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.architecture }}-${{ matrix.configuration }} -- /m
+
+  bundle:
+    name: Release bundle
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Build x64
+        run: |
+          cmake --preset x64
+          cmake --build --preset x64-release -- /m
+
+      - name: Build x86
+        run: |
+          cmake --preset x86
+          cmake --build --preset x86-release -- /m
+
+      # The Store certificate is not in this repository, so this bundle is unsigned.
+      - name: Create bundle
+        run: powershell -File scripts/make-bundle.ps1
+
+      - name: Validate packages
+        run: powershell -File scripts/validate-bundle.ps1
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: projectM-UWP-unsigned-bundle
+          path: build/bundle/Release/*.appxbundle
+          if-no-files-found: error
+          retention-days: 14

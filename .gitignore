@@ -1,0 +1,6 @@
+/build
+/src/.vs
+/.vs
+*.user
+*.pfx
+/src/packages
